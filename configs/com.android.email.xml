@@ -1,0 +1,21 @@
+<root>
+<database id="databases/EmailProvider.db">
+<table id="Message">
+<column id="title">displayName</column>
+<column id="start">timeStamp</column>
+<column id="description">subject</column>
+<column id="description" type="0:Unread;1:Read">flagRead</column>
+<column id="description" type="0:Not loaded;1:Loaded">flagLoaded</column>
+<column id="description" type="0:Not favorite;1:Favorite">flagFavorite</column>
+<column id="description">snippet</column>
+
+<!--
+Refers to serverID in Mailbox
+This functionality has not been implemented yet and the query is ignored
+-->
+<column id="description" query="SELECT serverId FROM Mailbox where _id=?">mailboxKey</column>
+
+<icon desc="Incoming or outgoing email">gmail.png</icon>
+</table>
+</database>
+</root>

@@ -1,0 +1,13 @@
+<root>
+<database id="databases/contacts2.db">
+<table id="calls">
+
+<column id="title">name</column>
+<column id="start">date</column>
+<column id="description">number</column>
+<column id="description">duration</column>
+<column id="description" type="2:Outgoing;1:Incoming;3:Missed">type</column>
+<icon desc="Phone call">Phone-icon.png</icon>
+</table>
+</database>
+</root>

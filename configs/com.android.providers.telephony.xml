@@ -1,0 +1,13 @@
+<root>
+<database id="databases/mmssms.db">
+<table id="sms">
+<column id="title">address</column>
+<column id="start">date</column>
+<column id="description">subject</column>
+<column id="description">body</column>
+<column id="description" type="1:Incoming;2:Outgoing">type</column>
+<column id="description" type="1:Seen;2:Not seen">seen</column>
+<icon desc="Incoming or ougoing SMS">sms.png</icon>
+</table>
+</database>
+</root>

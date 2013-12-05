@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="ASCII"?>
+
+<root>
+<database id="db/browser2.db">	<!-- Name of the database file -->
+  <table id="bookmarks">		<!-- Name of the database table -->
+    <column id="title">title</column>
+    <column id="description" desc="url">url</column>
+    <column id="start">modified</column>
+	 <icon desc="Bookmark modified">bookmark-small.png</icon>
+	 <where>modified!=0</where>
+  </table>
+  <table id="history">
+    <column id="title">title</column>
+	 <column id="description" desc="url">url</column>
+	 <column id="start">date</column>
+    <icon desc="Visiting a web page">web.png</icon>
+	 <where>date!=0</where>
+  </table>
+</database>
+</root>

@@ -1,0 +1,11 @@
+<root>
+ <database id ="db/history.db">
+  <table id="suggestions">
+   <column id="title">query</column>
+	<column id="start">date</column>
+	<where>date!=0</where>
+	<icon desc="YouTube activity">YouTube-icon.png</icon>
+  </table>
+ </database>
+</root>
+

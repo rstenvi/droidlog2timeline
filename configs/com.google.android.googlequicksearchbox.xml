@@ -1,0 +1,8 @@
+<root>
+<database id="databases/qsb-history.db">
+<table id="history">
+<column id="title">query</column>
+<column id="start">insert_time</column>
+</table>
+</database>
+</root>

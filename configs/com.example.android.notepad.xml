@@ -1,0 +1,14 @@
+<root>
+<database id="databases/note_pad.db">
+<table id="notes">
+<column id="title">title</column>
+<column id="description">note</column>
+<column id="start">created</column>
+</table>
+<table id="notes">
+<column id="title">title</column>
+<column id="description">note</column>
+<column id="start">modified</column>
+</table>
+</database>
+</root>

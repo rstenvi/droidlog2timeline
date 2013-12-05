@@ -1,0 +1,12 @@
+<root>
+<database id="databases/library.db">
+<table id="books">
+<column id="start">created_date</column>
+<column id="title">title</column>
+<column id="description">author</column>
+<column id="description">date</column>
+<column id="description">_data</column>
+<column id="description">_cover</column>
+</table>
+</database>
+</root>

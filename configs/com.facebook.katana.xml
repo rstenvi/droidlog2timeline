@@ -1,0 +1,20 @@
+<root>
+<database id="db/threads_db2">
+<table id="messages">
+<column id="title">subject</column>
+<column id="start">timestamp_ms</column>
+<column id="description">text</column>
+
+<!--
+This is JSON, should be able to parse this in the application and only print the
+important parts.
+-->
+<column id="description">sender</column>
+<column id="description">coordinates</column>
+<column id="description">source</column>
+<column id="description">publicity</column>
+<icon desc="Facebook messages">facebook.png</icon>
+<where>timestamp_ms!=0</where>
+</table>
+</database>
+</root>

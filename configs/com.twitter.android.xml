@@ -1,0 +1,19 @@
+<root>
+<!-- Not sure how to handle user IDs yet -->
+<database id="db/412162897-5.db">
+<table id="messages">
+<column id="title">content</column>
+<column id="start">created</column>
+<icon desc="Twitter usage">twitter.png</icon>
+</table>
+
+<!--
+Generates a lot of data, which does not seem to be relevant
+<table id="search_queries">
+<column id="title">name</column>
+<column id="description">query</column>
+<column id="start">time</column>
+</table>
+-->
+</database>
+</root>

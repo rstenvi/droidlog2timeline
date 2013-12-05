@@ -1,0 +1,24 @@
+<root>
+<database id="db/external.db">
+<table id="files">
+<column id="title">title</column>
+<column id="description">_data</column>
+<column id="start" divide="1">date_modified</column>
+<column id="description">description</column>
+<column id="description">_display_name</column>
+<column id="description">bucket_display_name</column>
+<column id="description" desc="Mime type">mime_type</column>
+<column id="description" desc="Size">_size</column>
+
+<icon desc="Media files">media.png</icon>
+
+<where>date_modified!=0</where>
+</table>
+</database>
+</root>
+
+<!--
+Extra timestamps:
+datetaken
+date_modified
+-->

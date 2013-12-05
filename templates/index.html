@@ -1,0 +1,109 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
+
+<!-- Multiple Filter boxes:
+http://code.google.com/p/simile-widgets/wiki/Timeline_highlighting_and_filtering
+-->
+
+<!-- Scripts are hosted online -->
+<script
+src="http://api.simile-widgets.org/timeline/2.3.1/timeline-api.js?bundle=true"
+type="text/javascript"></script>
+
+<script src="variables.js" type="text/javascript"></script>
+<script src="js/filter.js" type="text/javascript"></script>
+
+<!-- Completely offline -->
+<!--
+<script src="timeline/timeline_ajax/simile-ajax-api.js?bundle=true" type="text/javascript"></script>
+<script src="timeline/timeline_js/timeline-api.js?bundle=true" type="text/javascript"></script>
+-->
+
+<script>
+var tl;
+function onLoad() {
+	var eventSource = new Timeline.DefaultEventSource();
+
+	var theme = Timeline.ClassicTheme.create(); // create the theme
+	theme.event.bubble.width = 350;   // modify it
+	theme.event.bubble.height = 300;
+	theme.event.track.height = 15;
+	theme.event.tape.height = 8;
+	var bandInfos = [
+		Timeline.createBandInfo({
+			eventSource:    eventSource,
+			width:          "70%", 
+			intervalUnit:   interval1, 
+			intervalPixels: 100
+		}),
+		Timeline.createBandInfo({
+			overview:       true,
+			eventSource:    eventSource,
+			width:          "10%", 
+			intervalUnit:   interval2, 
+			intervalPixels: 200
+		}),
+		Timeline.createBandInfo({
+			overview:       true,
+			eventSource:    eventSource,
+			width:          "10%", 
+			intervalUnit:   interval3, 
+			intervalPixels: 200
+		}),
+		Timeline.createBandInfo({
+			overview:       true,
+			eventSource:    eventSource,
+			width:          "10%", 
+			intervalUnit:   interval4, 
+			intervalPixels: 200
+		})
+	];
+	bandInfos[1].syncWith = 0;
+	bandInfos[1].highlight = true;
+	bandInfos[2].syncWith = 0;
+	bandInfos[2].highlight = true;
+	bandInfos[3].syncWith = 0;
+	bandInfos[3].highlight = true;
+
+	tl = Timeline.create(document.getElementById("my-timeline"), bandInfos);
+	Timeline.loadXML(XMLFile, function(xml, url) {
+		eventSource.loadXML(xml, url); });
+	setupFilterHighlightControls(document.getElementById("controls"), tl,[0,1,2,3], theme);
+}
+var resizeTimerID = null;
+function onResize() {
+	if (resizeTimerID == null) {
+		resizeTimerID = window.setTimeout(function() {
+			resizeTimerID = null;
+			tl.layout();
+		}, 500);
+	}
+}
+</script>
+</head>
+<body onload="onLoad();" onresize="onResize();">
+<h2>Android timeline</h2>
+<div id="my-timeline" style="font-size: 8px; height: 500px; border: 1px solid #aaa"></div>
+<noscript>
+This page uses Javascript to show you a Timeline. Please enable Javascript in
+your browser to see the full page. Thank you.
+</noscript>
+<div class="controls" id="controls"></div>
+<div>
+Go to date: <input type="date" name="go" onChange="centerSimileAjax(this.value);">
+(yyyy-mm-dd)
+</div>
+<div id="imageDescription">
+<script>
+for(var i = 0; i < Images.length; i++)	{
+document.write("<img src=\"" + Images[i] + "\"/>");
+document.write(imageDesc[i]);
+document.write("<br />");
+}
+</script>
+</div>
+</body>
+</html>

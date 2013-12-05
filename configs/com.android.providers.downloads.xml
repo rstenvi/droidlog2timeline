@@ -1,0 +1,11 @@
+<root>
+<database id="db/downloads.db">
+<table id="downloads">
+<column id="title">title</column>
+<column id="description" desc="description">description</column>
+<column id="description" desc="uri">uri</column>
+<column id="start">lastmod</column>
+<icon desc="Downloads">Download.png</icon>
+</table>
+</database>
+</root>
