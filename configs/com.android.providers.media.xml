@@ -7,8 +7,8 @@
 <column id="description">description</column>
 <column id="description">_display_name</column>
 <column id="description">bucket_display_name</column>
-<column id="description" desc="Mime type">mime_type</column>
-<column id="description" desc="Size">_size</column>
+<column id="description">mime_type</column>
+<column id="description">_size</column>
 
 <icon desc="Media files">media.png</icon>
 

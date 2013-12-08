@@ -118,9 +118,6 @@ def printVariables(fname, images, intervals):
 	f.write("var imageDesc = new Array();\n")
 
 	# All image paths and their description
-	# TODO:
-	# - This will print equal images, can be handled here or when they are read
-	# in
 	for i in images:
 		f.write("Images.push('" + i["file"] + "');\n")
 		f.write("imageDesc.push('" + i["description"] + "');\n")
@@ -155,13 +152,24 @@ def readXML(name, imageDesc):
 			table = {}
 			table["name"] = elem.get("id")
 			columns = []
+			inserts = []
+			queries = []
 			for el in elem.iterchildren():
 				if el.tag == "column":
 					column = {}
 					column["name"] = el.text
+					column["print"] = el.text
+					column["default"] = "None"
 					attrs = {}
 					for e in el.items():
-						attrs[e[0]] = e[1]
+						if e[0] == "override":
+							column["print"] = e[1]
+						elif e[0] == "default":
+							column["default"] = e[1]
+						else:
+							attrs[e[0]] = e[1]
+						if e[0] == "query":
+							queries.append(e[1])
 					column["attrs"] = attrs
 					columns.append(column)
 				elif el.tag == "icon":
@@ -171,7 +179,12 @@ def readXML(name, imageDesc):
 					imageDesc.append(icon)
 				elif el.tag == "where":
 					table["where"] = el.text
+				elif el.tag == "insert":
+					insert = {"name" : el.text, "id" : el.get("id")}
+					inserts.append(insert)
 			table["columns"] = columns
+			table["inserts"] = inserts
+			table["queries"] = queries
 			tables.append(table)
 		DB["tables"] = tables
 		ret.append(DB)
@@ -180,26 +193,36 @@ def readXML(name, imageDesc):
 # Retrieve the info from the database, runs a simple query and return the result
 def getInfoDB(db, columns, table, where=None, Log=None):
 	retValue = True
-	get = "select "
+	get = "SELECT "
 	ret = {}
 	gets = []
 	for c in columns:
 		get += c["name"] + ","
 		gets.append(c["name"])
 	get = get[:-1]	# Remove last ","
-	get += " from " + table
+	get += " FROM " + table
 	if(where != None):
-		get += " where " + where
+		get += " WHERE " + where
 	try:
 		cur = db.cursor()
 		cur.execute(get)
 		ret = cur.fetchall()
-		for r in ret:
-			for g in gets:
-				if r[g] == None:
-					r[g] = "None"
 		if Log != None:
 			Log.append(get)
+	except sqlite.Error, e:
+		print "Error %s:" % e.args[0]
+		retValue = False
+	return ret, retValue
+
+def execQuery(db, query, Log=None):
+	retValue = True
+	ret = {}
+	try:
+		cur = db.cursor()
+		cur.execute(query)
+		ret = cur.fetchall()
+		if Log != None:
+			Log.append(query)
 	except sqlite.Error, e:
 		print "Error %s:" % e.args[0]
 		retValue = False
@@ -223,15 +246,45 @@ def runQueries(dbName, xmlO, xml, skew, startD, endD, timezone, Queries):
 		if succ == False:
 			if db:	db.close()
 			return False
+
+		# We run all the XML-defined queries beforehand to avoid having to run
+		# them for every field value
+		for q in t["queries"]:
+			qq, succ = execQuery(db, q, Queries)
+			if succ == False:
+				if db:	db.close()
+				return False
+			for c in t["columns"]:
+				if "query" in c["attrs"] and c["attrs"]["query"] == q:
+					# TODO:
+					# - Is a little strict on what it accepts, should be able to
+					# handle redundant spaces
+					# Decompose the query to find the key and value
+					tmp = c["attrs"]["query"]
+					first = tmp.find(" ")
+					second = tmp.find(",")
+					firstV = tmp[first+1:second]
+					while tmp[second+1] == " ":
+						second += 1
+					tmp = tmp[second+1:]
+					first = tmp.find(" ")
+					secondV = tmp[:first]
+
+					# Create 1 result that holds the entire result and which field
+					# is the key and which field is the value
+					c["queryResult"] = {"key" : firstV, "value" : secondV, "result" :
+					qq}
 		for q in query:	# For each result
 			event = ET.Element("event")
 			if "icon" in t:
 				if "file" in t["icon"]:
 					event.set("icon", t["icon"]["file"])
+			for i in t["inserts"]:
+				event.set(i["id"], i["name"])
 			for c in t["columns"]:
 				ins = ""
 				if q[c["name"]] == None:
-					ins = "None"
+					ins = c["default"]
 				elif "type" in c["attrs"]:
 					types = c["attrs"]["type"].split(";")
 					for ty in types:
@@ -243,11 +296,25 @@ def runQueries(dbName, xmlO, xml, skew, startD, endD, timezone, Queries):
 				else:
 					ins = q[c["name"]].encode('ascii', 'xmlcharrefreplace')
 
+				# Separate case where we need to get the result from a different DB
+				# The queries have been done already, just need to find it
+				if "query" in c["attrs"] and "queryResult" in c:
+					for res in c["queryResult"]["result"]:
+						if q[c["name"]] == res[c["queryResult"]["key"]]:
+							ins = str(res[c["queryResult"]["value"]])
+							break
+				
+				if "append" in c["attrs"]:
+					ins += " " + c["attrs"]["append"]
+				if "prepend" in c["attrs"]:
+					ins = c["attrs"]["prepend"] + " " + ins
+					print ins
+
 				if "id" in c["attrs"]:
 					if c["attrs"]["id"] == "title":
-						event.set("title", "[" + c["name"] + "] " + q[c["name"]])
+						event.set("title", "[" + c["print"] + "] " + ins)
 					else:
-						ins2 = "<b>" + c["name"] + "</b> "
+						ins2 = "<b>" + c["print"] + "</b> "
 						if c["attrs"]["id"] == "description":
 							bef = event.text
 							if bef != "" and bef != None:	bef += "<br />"
@@ -470,8 +537,8 @@ if __name__== '__main__':
 				else:
 					log.write("TRYING " + XMLconf + "\n")
 					
-
-				xmlO = readXML(XMLconf, imageDescs)	# Read xml configuration
+				tmpImageDescs = []
+				xmlO = readXML(XMLconf, tmpImageDescs)	# Read xml configuration
 				eventList = []	# Temporary storage we append if we succeed
 				for x in xmlO:	# For each database
 					dbPath = pathData + "/" + l[0] + "/" + x["name"]	# Full path
@@ -497,6 +564,7 @@ if __name__== '__main__':
 					Queries = []
 					log.write("SUCCESS " + XMLconf + " " + dbPath + "\n")
 					for e in eventList:	root.append(e)
+					for i in tmpImageDescs:	imageDescs.append(i)
 					break
 				count += 1
 			if ret == False:	# After "while True" loop

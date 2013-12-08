@@ -4,7 +4,7 @@
 <database id="databases/browser2.db">	<!-- Name of the database file -->
   <table id="bookmarks">		<!-- Name of the database table -->
     <column id="title">title</column>
-    <column id="description" desc="url">url</column>
+    <column id="description">url</column>
     <column id="start">created</column>
 	 <icon desc="Bookmark modified">bookmark-small.png</icon>
 	 <where>created!=0</where>
@@ -12,7 +12,7 @@
 
   <table id="history">
     <column id="title">title</column>
-	 <column id="description" desc="url">url</column>
+	 <column id="description">url</column>
 	 <column id="start">date</column>
     <icon desc="Visiting a web page">web.png</icon>
 	 <where>date!=0</where>

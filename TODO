@@ -1,0 +1,30 @@
+TODO
+======
+
+List of things that should be done in the future or has been done since we
+uploaded it.
+
+Program
+---------
+
+- [x] P1: Clean up the output of images from script (remove duplicates)
+- [x] P2: Support finding value of foreign key, i.e. running a new query
+- [x] P3: Support prepending extra text before the result from the DB
+- [x] P4: Support appending extra text after the result from the DB
+- [x] P5: Add option to insert random text from XML-file. Useful for filtering later
+- [ ] P6: Handle filenames that are not static, maybe using regexp
+- [ ] P7: Handle more complex datastructures, like JSON
+- [ ] P8: Handle media formats, like displaying images taken from camera
+- [x] P9: Allow overriding the default for unknown values
+
+Configurations
+---------------
+
+- [ ] C0: Create configuration files for more applications
+- [ ] C1: Write documentation for which devices various files have been tested against
+
+Web application
+----------------
+
+- [ ] W1: Support real date functionality in browsers that doesn't support HTML5 date
+- [ ] W2: More advanced filtering, AND, OR on multiple boxes

@@ -1,0 +1,12 @@
+*.bak
+*.swp
+*.log
+
+# Default output-dir from tool
+output/
+
+# Used to store testdata
+data/
+
+# Lists describing the test data
+packages.list*

@@ -2,7 +2,7 @@
 <database id="db/ContextDB.db">
 <table id="app_usage">
 <column id="title">package_name</column>
-<column id="description" desc="class">class_name</column>
+<column id="description">class_name</column>
 <column id="start">last_access_time</column>
 <icon desc="Program is started">android.png</icon>
 <!--
