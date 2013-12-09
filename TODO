@@ -12,7 +12,7 @@ Program
 - [x] P3: Support prepending extra text before the result from the DB
 - [x] P4: Support appending extra text after the result from the DB
 - [x] P5: Add option to insert random text from XML-file. Useful for filtering later
-- [ ] P6: Handle filenames that are not static, maybe using regexp
+- [x] P6: Handle filenames that are not static, maybe using regexp
 - [ ] P7: Handle more complex datastructures, like JSON
 - [ ] P8: Handle media formats, like displaying images taken from camera
 - [x] P9: Allow overriding the default for unknown values

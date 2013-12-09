@@ -1,6 +1,10 @@
 <root>
-<!-- Not sure how to handle user IDs yet -->
-<database id="db/412162897-5.db">
+<!-- Look for database name where we have a series of integers then a dash, then
+one more digit.
+Not sure how general this value is or if it could have a format that doesn't
+match the regexp.
+-->
+<database id="db/{{[0-9]+-[0-9].db}}">
 <table id="messages">
 <column id="title">content</column>
 <column id="start">created</column>

@@ -37,6 +37,8 @@ packages.list, to create a new configuration file for a program, you need to
 use this name, pluss '.xml'. This also means that the databases from the device
 must be stored in the same directory structure as it had on the device.
 
+See separate README file under configs directory.
+
 Documentation
 -------------
 

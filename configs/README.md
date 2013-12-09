@@ -75,3 +75,11 @@ Extra tags
   ```<insert id="SIMILE keyword">text</insert>```
   If you use the same SIMILE keyword in a column, that will overwrite this
 
+Formatting information
+
+- Regular expression: We have come across one database that doesn't have a fixed
+  name, but instead it consist of a user ID. For these kind of scenarios we
+  support regular expression for the database id attribute. Both path and DB
+  name can be a regular expression, but it must be enclosed in {{...}}. The path
+  and DB name should be in it's own regular expression. This is because the
+  program will only look in directory to find a match.

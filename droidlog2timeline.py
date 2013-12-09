@@ -25,7 +25,7 @@
 # THE SOFTWARE.
 
 import sqlite3 as sqlite
-import sys, time, csv, os
+import sys, time, csv, os, re
 import argparse
 from datetime import datetime
 import math
@@ -136,9 +136,37 @@ def readPackagesList(name):
 			ret.append(row)
 	return ret
 
+# Checks if a regular expression matches against a file
+# firstPath contains everything up to and including com.xxx.yyy
+def replaceRegFile(firstPath, name, regStart):
+	ret = ""
+	
+	# Generate regular expression
+	regEnd = name.find("}}")
+	regExp = name[regStart+2:regEnd]
+	dirRe = re.compile(regExp)
+	
+	# Find out additional path
+	extraPathI = name[:regStart].rfind("/")
+	if extraPathI != -1:
+		firstPath += name[:extraPathI+1]
+	
+	# List all the files in this path
+	dirFiles = os.listdir(firstPath)
+	
+	# Check if any of those files mathes our query
+	results = []
+	for l in dirFiles:
+		if dirRe.match(l):	results.append(l)
+	
+	# We only accept it if there is one good match
+	if len(results) == 1:
+		ret = name[:regStart] + results[0] + name[regEnd+2:]
+	return ret
+
 # Read in configuration XML-file into a list of dictionaries
 # Will store any arbitrary attributes, interpreting them is not done here
-def readXML(name, imageDesc):
+def readXML(name, imageDesc, pathData):
 	ret = []
 	f = open(name, "r")
 	tree = ET.parse(f)
@@ -147,6 +175,27 @@ def readXML(name, imageDesc):
 	for dbT in root.iter("database"):
 		DB = {}
 		DB["name"] = dbT.get("id")
+
+		# Look for any regular expression in filename
+		regFind = DB["name"].find("{{")
+		# As long as there is regular expressions in the filename
+		while regFind != -1:
+			# Find program directory (com.xxx.yyy)
+			nameStart = name.rfind("/")
+			nameEnd = name.find(".xml")
+
+			tmp = replaceRegFile(pathData + name[nameStart:nameEnd] + "/",\
+			DB["name"], regFind)
+			
+			# If it is not empty we found a match
+			if tmp != "":
+				DB["name"] = tmp
+			else:
+				# No match is found, will fail later
+				break
+			# Try to find another regular expression
+			regFind = DB["name"].find("{{")
+
 		tables = []
 		for elem in dbT.iter("table"):
 			table = {}
@@ -192,7 +241,6 @@ def readXML(name, imageDesc):
 
 # Retrieve the info from the database, runs a simple query and return the result
 def getInfoDB(db, columns, table, where=None, Log=None):
-	retValue = True
 	get = "SELECT "
 	ret = {}
 	gets = []
@@ -203,17 +251,9 @@ def getInfoDB(db, columns, table, where=None, Log=None):
 	get += " FROM " + table
 	if(where != None):
 		get += " WHERE " + where
-	try:
-		cur = db.cursor()
-		cur.execute(get)
-		ret = cur.fetchall()
-		if Log != None:
-			Log.append(get)
-	except sqlite.Error, e:
-		print "Error %s:" % e.args[0]
-		retValue = False
-	return ret, retValue
+	return execQuery(db, get, Log)
 
+# Executes any query against a given database
 def execQuery(db, query, Log=None):
 	retValue = True
 	ret = {}
@@ -538,7 +578,7 @@ if __name__== '__main__':
 					log.write("TRYING " + XMLconf + "\n")
 					
 				tmpImageDescs = []
-				xmlO = readXML(XMLconf, tmpImageDescs)	# Read xml configuration
+				xmlO = readXML(XMLconf, tmpImageDescs, pathData)	# Read xml configuration
 				eventList = []	# Temporary storage we append if we succeed
 				for x in xmlO:	# For each database
 					dbPath = pathData + "/" + l[0] + "/" + x["name"]	# Full path
