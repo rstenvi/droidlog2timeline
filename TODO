@@ -26,5 +26,5 @@ Configurations
 Web application
 ----------------
 
-- [ ] W1: Support real date functionality in browsers that doesn't support HTML5 date
+- [x] W1: Support real date functionality in browsers that doesn't support HTML5 date
 - [ ] W2: More advanced filtering, AND, OR on multiple boxes

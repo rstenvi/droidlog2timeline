@@ -8,6 +8,8 @@ available logs on an Android device.
 
 The timeline is displayed using [SIMILE Timeline](http://www.simile-widgets.org/timeline/).
 
+This is now under development and a release will be coming soon.
+
 Running the program
 -------------------
 

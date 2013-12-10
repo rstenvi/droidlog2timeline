@@ -12,6 +12,18 @@ http://code.google.com/p/simile-widgets/wiki/Timeline_highlighting_and_filtering
 <script
 src="http://api.simile-widgets.org/timeline/2.3.1/timeline-api.js?bundle=true"
 type="text/javascript"></script>
+<!-- jquery ui libraries at Google -->
+<script
+src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+<script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.2/jquery-ui.min.js"></script>
+<!-- datepicker CSS hosted at Google -->
+<link rel="stylesheet"
+href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.2/themes/ui-lightness/jquery-ui.css"
+type="text/css" media="all" />
+
+<!-- Additional CSS for the datepicker -->
+<link href="css/datepicker.css" rel="stylesheet" type="text/css"/>
+
 
 <script src="variables.js" type="text/javascript"></script>
 <script src="js/filter.js" type="text/javascript"></script>
@@ -92,10 +104,14 @@ This page uses Javascript to show you a Timeline. Please enable Javascript in
 your browser to see the full page. Thank you.
 </noscript>
 <div class="controls" id="controls"></div>
-<div>
-Go to date: <input type="date" name="go" onChange="centerSimileAjax(this.value);">
-(yyyy-mm-dd)
+<div id="datepicker">
+Go to date: <input id="dateControl" type="date" name="go" onChange="centerSimileAjax(this.value);">
 </div>
+<script>
+	// Use datepicker if html5 date input is not available
+	if ( $('#dateControl')[0].type != 'date' )
+		$('#dateControl').datepicker();
+</script>
 <div id="imageDescription">
 <script>
 for(var i = 0; i < Images.length; i++)	{
