@@ -271,7 +271,8 @@ def execQuery(db, query, Log=None):
 
 # Uses the configuration XML-file and the source database to create new XML-file
 # that is input to the timeline
-def runQueries(dbName, xmlO, xml, skew, startD, endD, timezone, Queries):
+def runQueries(dbName, xmlO, xml, skew, startD, endD, timezone, Queries,
+unallocated):
 	db = sqlite.connect(dbName)
 	db.row_factory = dict_factory
 	dateT = 0
@@ -281,6 +282,9 @@ def runQueries(dbName, xmlO, xml, skew, startD, endD, timezone, Queries):
 			t["where"] = None
 		# Execute the actual query
 		query, succ = getInfoDB(db, t["columns"], t["name"], t["where"], Queries)
+		if unallocated != None:
+			for row in unallocated[t["name"]]:
+				query.append(row)
 
 		# Exit if we fail
 		if succ == False:
@@ -348,7 +352,6 @@ def runQueries(dbName, xmlO, xml, skew, startD, endD, timezone, Queries):
 					ins += " " + c["attrs"]["append"]
 				if "prepend" in c["attrs"]:
 					ins = c["attrs"]["prepend"] + " " + ins
-					print ins
 
 				if "id" in c["attrs"]:
 					if c["attrs"]["id"] == "title":
@@ -360,7 +363,7 @@ def runQueries(dbName, xmlO, xml, skew, startD, endD, timezone, Queries):
 							if bef != "" and bef != None:	bef += "<br />"
 							else:	bef = ""
 							bef += ins2 + ins
-							event.text = bef
+							event.text = removeInvalid(bef)
 						else:
 							if c["attrs"]["id"] == "start" or c["attrs"]["id"] == "end":
 								divide = 1000
@@ -384,6 +387,64 @@ def runQueries(dbName, xmlO, xml, skew, startD, endD, timezone, Queries):
 	if db:
 		db.close()
 	return True
+
+def removeInvalid(chunk):
+	chunk = ' '.join(chunk .split())
+	return ''.join([ch for ch in chunk if ord(ch) > 31 or ord(ch) ==9])
+
+# Retrieve all unallocated from one database
+# Converts the result to a format that can be read just like the results
+# received from the original query
+def getUnallocated(xmlConfig, dbPath):
+	dbFile = xmlConfig["name"]
+
+	# Make a list of all table names
+	tables = []
+	for t in xmlConfig["tables"]:
+		tables.append(t["name"])
+
+	# Data we send to chose which records we are going to select
+	send = [{"filename" : dbFile, "path" : dbPath, "tables" : tables}]
+
+	# All data in unallocated space
+	res = SQLiteCarver.findAllUnallocated(send, verbose)
+	
+	# Transform the input to what it looks like when we get it from the SQL
+	# queries
+	sqlResult = {}
+	for r in res:
+		for t in tables:
+			sqlResult[t] = []
+			if t in r["rows"]:
+				for l in r["rows"][t]:
+					ins = {}
+					for ll in l:
+						ins[ll["name"]] = ll["content"]
+					sqlResult[t].append(ins)
+	
+	# Delete rows where we don't have a timestamp
+	# Add mark in title that says it is from unallocated space
+	# Add attributes we are missing
+	for col in xmlConfig["tables"]:
+		dels = []
+		count = 0
+		for r in sqlResult[col["name"]]:
+			for c in col["columns"]:
+				if c["attrs"]["id"] == "start" or c["attrs"]["id"] == "end":
+					if c["name"] not in r or r[c["name"]] == 0:
+						dels.append(count)
+						break
+				if c["name"] not in r:
+					r[c["name"]] = c["default"]
+				if c["attrs"]["id"] == "title":
+					r[c["name"]] = str(r[c["name"]]) + "(Unallocated)"
+			count += 1
+		for i in reversed(range(0, len(dels))):
+			del sqlResult[col["name"]][dels[i]]
+	# TODO:
+	# - Should also write unallocated log to a separate file
+	return sqlResult
+
 
 if __name__== '__main__':
 	# Add the parser object
@@ -443,12 +504,24 @@ if __name__== '__main__':
 	help="Check that the files are not modified after interaction with them, "+
 	"exits if they don't match")
 
+	# Whether or not we should carve for information in unallocated space,
+	# default is not
+	parser.add_argument('-C', '--carve', dest='carve', action='store_true',
+	help="Carve for information in unallocated space")
+	
 	# Get program directory
 	thisPath = os.path.dirname(os.path.realpath(__file__))
 
 	workPath = os.getcwd()	# Get working directory
 	
 	args = vars(parser.parse_args())
+
+	Carve = args["carve"]
+	if Carve:
+		# Import module for SQLite carving
+		sys.path.insert(0, 'src/SQLiteCarving')
+		import SQLiteCarver
+
 
 	verbose = args["verbose"]
 
@@ -560,6 +633,7 @@ if __name__== '__main__':
 	else:	# SQLite databases
 		dbPath = ""
 		XMLconf = ""
+		unallocated = None
 		intervals = ["MINUTE", "HOUR", "DAY", "MONTH"]
 		for l in packs:
 			count = 0
@@ -588,8 +662,10 @@ if __name__== '__main__':
 						break
 					if hashcheck:
 						hashSum = sha1OfFile(dbPath)
+					if Carve:
+						unallocated = getUnallocated(x, pathData + "/" + l[0] + "/")
 					ret = runQueries(dbPath, x, eventList, skew, startD, endD,
-					timezone, Queries)
+					timezone, Queries, unallocated)
 					if hashcheck:
 						hashSum2 = sha1OfFile(dbPath)
 						if hashSum != hashSum2:
