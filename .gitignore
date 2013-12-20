@@ -1,6 +1,8 @@
 *.bak
 *.swp
 *.log
+*.pyc
+*.db
 
 # Default output-dir from tool
 output/
