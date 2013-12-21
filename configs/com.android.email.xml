@@ -1,16 +1,17 @@
 <root>
 <database id="databases/EmailProvider.db">
 <table id="Message">
-<column id="title">displayName</column>
+<column id="title" override="Display">displayName</column>
 <column id="start">timeStamp</column>
 <column id="description">subject</column>
-<column id="description" type="0:Unread;1:Read;">flagRead</column>
-<column id="description" type="0:Not loaded;1:Loaded;">flagLoaded</column>
-<column id="description" type="0:Not favorite;1:Favorite;">flagFavorite</column>
+<column id="description" override="Read/unread" type="0:Unread;1:Read;">flagRead</column>
+<column id="description" override="Loaded/not loaded" type="0:Not loaded;1:Loaded;">flagLoaded</column>
+<column id="description" override="Favorite/not favirite" type="0:Not favorite;1:Favorite;">flagFavorite</column>
 <column id="description">snippet</column>
 <column id="description" override="Mailbox" query="SELECT _id, serverId FROM Mailbox">mailboxKey</column>
 
 <icon desc="Incoming or outgoing email">gmail.png</icon>
+<insert id="caption">Incoming or outgoing e-mail messages</insert>
 </table>
 </database>
 </root>

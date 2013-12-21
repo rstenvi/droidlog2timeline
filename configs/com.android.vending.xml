@@ -1,7 +1,7 @@
 <root>
 <database id="databases/suggestions.db">
 <table id="suggestions">
-<column id="title">display1</column>
+<column id="title" override="Display">display1</column>
 <column id="start">date</column>
 <column id="description">query</column>
 <where>date!=0</where>
@@ -22,6 +22,7 @@
 <column id="description">package_name</column>
 <column id="description">account</column>
 <where>first_download_ms!=0</where>
+<insert id="caption">When app was first downloaded</insert>
 </table>
 <table id="appstate">
 <column id="title">title</column>
@@ -29,6 +30,7 @@
 <column id="description">package_name</column>
 <column id="description">account</column>
 <where>last_update_timestamp_ms!=0</where>
+<insert id="caption">When app was last modified</insert>
 </table>
 </database>
 </root>

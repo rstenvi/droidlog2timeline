@@ -1,13 +1,13 @@
 <root>
 <database id="databases/calendar.db">
 <table id="Calendars">
-<column id="title">_sync_account</column>
+<column id="title" override="Account">_sync_account</column>
 <column id="start">_sync_time</column>
-<column id="description">_sync_account_type</column>
+<column id="description" override="Account type">_sync_account_type</column>
 <column id="description">url</column>
 <column id="description">name</column>
-<column id="description">displayName</column>
-<column id="description">ownerAccount</column>
+<column id="description" override="Display name">displayName</column>
+<column id="description" override="Owner">ownerAccount</column>
 <column id="description">sync_events</column>
 <where>_sync_time!=0</where>
 </table>
@@ -15,9 +15,10 @@
 <column id="title">title</column>
 <column id="start">dtstart</column>
 <column id="end">dtend</column>
-<column id="description">_sync_account</column>
-<column id="description">_sync_account_type</column>
+<column id="description" override="Account">_sync_account</column>
+<column id="description" override="Account type">_sync_account_type</column>
 <column id="description">description</column>
+<insert id="caption">Planned events in calendar (user defined timestamps)</insert>
 </table>
 </database>
 </root>

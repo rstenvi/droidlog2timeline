@@ -9,6 +9,7 @@
 type="1:Incoming;2:Outgoing;">type</column>
 <column id="description" type="1:Seen;2:Not seen;">seen</column>
 <icon desc="Incoming or outgoing SMS">sms.png</icon>
+<insert id="caption">Incoming or outgoing SMS</insert>
 </table>
 </database>
 </root>

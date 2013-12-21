@@ -3,9 +3,9 @@
 <table id="logs">
 <column id="title">number</column>
 <column id="start">date</column>
-<column id="description">m_subject</column>
-<column id="description">m_content</column>
-<column id="description">account_name</column>
+<column id="description" override="Subject">m_subject</column>
+<column id="description" override="Content">m_content</column>
+<column id="description" override="Account name">account_name</column>
 <column id="description">type</column>
 <column id="description">duration</column>
 <column id="description">geocoded_location</column>

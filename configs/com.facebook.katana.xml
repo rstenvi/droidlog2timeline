@@ -15,6 +15,7 @@ important parts.
 <column id="description">publicity</column>
 <icon desc="Facebook messages">facebook.png</icon>
 <where>timestamp_ms!=0</where>
+<insert id="caption">Facebook messages, both to and from</insert>
 </table>
 </database>
 </root>

@@ -2,17 +2,19 @@
 <database id="db/external.db">
 <table id="files">
 <column id="title">title</column>
-<column id="description">_data</column>
+<column id="description" override="Data">_data</column>
 <column id="start" divide="1">date_modified</column>
 <column id="description">description</column>
-<column id="description">_display_name</column>
-<column id="description">bucket_display_name</column>
+<column id="description" override="Display name">_display_name</column>
+<column id="description" override="Bucket display name">bucket_display_name</column>
 <column id="description">mime_type</column>
-<column id="description">_size</column>
+<column id="description" override="Size" append="Bytes">_size</column>
 
 <icon desc="Media files">media.png</icon>
 
 <where>date_modified!=0</where>
+
+<insert id="caption">Modification of external files</insert>
 </table>
 </database>
 </root>

@@ -8,6 +8,7 @@
 <column id="description" append="seconds">duration</column>
 <column id="description" type="2:Outgoing;1:Incoming;3:Missed;">type</column>
 <icon desc="Phone call">Phone-icon.png</icon>
+<insert id="caption">Incoming, outgoing or missed phone calls</insert>
 </table>
 </database>
 </root>

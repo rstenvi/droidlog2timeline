@@ -8,6 +8,7 @@
 <!--
 We also have a "action_type" but we don't know the value of this
 -->
+<insert id="caption">Information about when an app is used</insert>
 </table>
 </database>
 </root>

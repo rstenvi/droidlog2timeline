@@ -5,6 +5,7 @@
 	<column id="start">date</column>
 	<icon desc="YouTube activity">YouTube-icon.png</icon>
 	<where>date!=0</where>
+	<insert id="caption">YouTube searches</insert>
   </table>
  </database>
 </root>

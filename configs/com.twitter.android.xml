@@ -9,6 +9,7 @@ match the regexp.
 <column id="title">content</column>
 <column id="start">created</column>
 <icon desc="Twitter usage">twitter.png</icon>
+<insert id="caption">Twitter messages that are posted</insert>
 </table>
 
 <!--

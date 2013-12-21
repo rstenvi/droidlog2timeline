@@ -4,7 +4,10 @@
 <column id="start">created_date</column>
 <column id="title">title</column>
 <column id="description">author</column>
+
+<!-- Need to find out exactly what the date refers to -->
 <column id="description">date</column>
+
 <column id="description">_data</column>
 <column id="description">_cover</column>
 </table>
