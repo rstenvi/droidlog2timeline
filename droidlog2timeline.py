@@ -166,7 +166,7 @@ def replaceRegFile(firstPath, name, regStart):
 
 # Read in configuration XML-file into a list of dictionaries
 # Will store any arbitrary attributes, interpreting them is not done here
-def readXML(name, imageDesc, pathData):
+def readXML(name, imageDesc, pathData, useOverride=True):
 	ret = []
 	f = open(name, "r")
 	tree = ET.parse(f)
@@ -211,7 +211,7 @@ def readXML(name, imageDesc, pathData):
 					column["default"] = "None"
 					attrs = {}
 					for e in el.items():
-						if e[0] == "override":
+						if e[0] == "override" and useOverride == True:
 							column["print"] = e[1]
 						elif e[0] == "default":
 							column["default"] = e[1]
@@ -448,7 +448,7 @@ def getUnallocated(xmlConfig, dbPath):
 
 if __name__== '__main__':
 	# Add the parser object
-	parser = argparse.ArgumentParser(description='Create timeline for Android',
+	parser = argparse.ArgumentParser(description=' droidlog2timeline - Create timeline for Android',
 	formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 	
 	# Path to the Android data directory
@@ -509,12 +509,19 @@ if __name__== '__main__':
 	parser.add_argument('-C', '--carve', dest='carve', action='store_true',
 	help="Carve for information in unallocated space")
 	
+	# Disallow override
+	parser.add_argument('-D', '--disallow-override', dest='disallow',
+	action='store_true',
+	help="Disallow override of attribute names")
+	
 	# Get program directory
 	thisPath = os.path.dirname(os.path.realpath(__file__))
 
 	workPath = os.getcwd()	# Get working directory
 	
 	args = vars(parser.parse_args())
+
+	disallow_override = args["disallow"]
 
 	Carve = args["carve"]
 	if Carve:
@@ -652,7 +659,7 @@ if __name__== '__main__':
 					log.write("TRYING " + XMLconf + "\n")
 					
 				tmpImageDescs = []
-				xmlO = readXML(XMLconf, tmpImageDescs, pathData)	# Read xml configuration
+				xmlO = readXML(XMLconf, tmpImageDescs, pathData, disallow_override)	# Read xml configuration
 				eventList = []	# Temporary storage we append if we succeed
 				for x in xmlO:	# For each database
 					dbPath = pathData + "/" + l[0] + "/" + x["name"]	# Full path
