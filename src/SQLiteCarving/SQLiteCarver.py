@@ -301,7 +301,8 @@ def getData(name):
 	for off in pagesIndex:
 		page = content[off:off+pageSize]
 		pageByte,bOffset,numCells,cOffset,numFree = struct.unpack(">bhhhb", page[:8])
-	
+
+		# Each cell header is 2 bytes long
 		start = 8 + (numCells * 2)
 		unallocated = page[start:cOffset]
 		unalloc.append(unallocated)
@@ -490,35 +491,78 @@ def findAllUnallocated(databases, verbose=False):
 
 if __name__== '__main__':
 	# Add parser object
-	parser = argparse.ArgumentParser(description='Display unallocated data from db',
+	parser = argparse.ArgumentParser(
+	description='Carver for SQLite databases',
 	formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 	# Path to database file
-	parser.add_argument('-p', '--path', dest='path',default="browser2.db",\
+	parser.add_argument('-p', '--path', dest='path', required=True,\
 	help='Path to the database that should be carved')
 
 	# List of tables to carve after
 	parser.add_argument('-t', '--tables', dest='tables', nargs='+',\
-	default=["history", "searches", "bookmarks"],\
+	default=["LIST"],\
 	help='List of tables that should be searched for')
+	
+	# Which file we should print results to
+	parser.add_argument('-o', '--output', dest='output',\
+	default=None,\
+	help='Which file to write results to')
 
+	# Exclude tables instead of including them
+	parser.add_argument('-i', '--inverse', dest='inverse',
+	action='store_true', help='Exclude -t instead of include')
+	
 	# Override the previous list and search for all tables
 	parser.add_argument('-a', '--all', dest='all',
 	action='store_true', help='Search all tables, ignores -t')
+	
+	# Dump all unallocated space to file or stdout
+	parser.add_argument('-d', '--dump-unallocated', dest='dump',
+	action='store_true', help='Dump all unallocated space (binary)')
 
 	args = vars(parser.parse_args())
 
 	db = args["path"]
 	findTables = args["tables"]
 	checkAll = args["all"]
-	
+	output = args["output"]
+	inverse = args["inverse"]
+	dump = args["dump"]
+
+	if output != None:
+		sys.stdout = open(output, 'w')
+
+	# Dump all output to file then exit
+	if dump == True:
+		unalloc, free = getData(db)
+		for u in unalloc:
+			sys.stdout.write(u)
+		for f in free:
+			sys.stdout.write(f)
+		sys.exit(0)
+
 	# Create all the signatures
 	signatures = createSignatures(db)
+
+	# If the user want to display a list of tables instead of carving data
+	if len(findTables) == 1 and findTables[0] == "LIST" and checkAll == False:
+		print "TABLES:"
+		for k in signatures.keys():
+			sys.stdout.write("\t" + k + "(")
+			for i in range(0, len(signatures[k])):
+				sys.stdout.write(signatures[k][i]["name"])
+				if i < len(signatures[k]) -1:
+					sys.stdout.write(", ")
+			print ")"
+		sys.exit(0)	# Exit afterwards, nothing to do
+
 
 	# Delete signatures from tables we are not looking for
 	if checkAll == False:
 		for key in signatures.keys():
-			if key not in findTables:
+			# Exclude or include depending on the value of inverse
+			if (key in findTables) == inverse:
 				del signatures[key]
 	
 	# Get unallocated space
