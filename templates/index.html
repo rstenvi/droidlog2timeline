@@ -4,101 +4,24 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
 
-<!-- Multiple Filter boxes:
-http://code.google.com/p/simile-widgets/wiki/Timeline_highlighting_and_filtering
--->
+<script src='../libraries/timeline_2.3.0/timeline_ajax/simile-ajax-api.js?bundle=true'></script>
+<script src='../libraries/timeline_2.3.0/timeline_js/timeline-api.js?bundle=true'></script>
 
-<!-- Scripts are hosted online -->
-<script
-src="http://api.simile-widgets.org/timeline/2.3.1/timeline-api.js?bundle=true"
-type="text/javascript"></script>
-<!-- jquery ui libraries at Google -->
-<script
-src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
-<script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.2/jquery-ui.min.js"></script>
-<!-- datepicker CSS hosted at Google -->
-<link rel="stylesheet"
-href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.2/themes/ui-lightness/jquery-ui.css"
-type="text/css" media="all" />
+<script src='../libraries/jquery_1.10.2/jquery.js'></script>
+<script src='../libraries/jquery_1.10.2/jquery-ui.js'></script>
+<link rel='stylesheet' href='../libraries/jquery_1.10.2/jquery-ui.css' type='text/css' media='all' />
 
-<!-- Additional CSS for the datepicker -->
-<link href="css/datepicker.css" rel="stylesheet" type="text/css"/>
+<link href="../css/datepicker.css" rel="stylesheet" type="text/css"/>
+<link href="../css/main.css" rel="stylesheet" type="text/css"/>
 
+<script src="variables.js"></script>
+<script src="../js/filter.js"></script>
+<script src="../js/timeline.js"></script>
 
-<script src="variables.js" type="text/javascript"></script>
-<script src="js/filter.js" type="text/javascript"></script>
-
-<!-- Completely offline -->
-<!--
-<script src="timeline/timeline_ajax/simile-ajax-api.js?bundle=true" type="text/javascript"></script>
-<script src="timeline/timeline_js/timeline-api.js?bundle=true" type="text/javascript"></script>
--->
-
-<script>
-var tl;
-function onLoad() {
-	var eventSource = new Timeline.DefaultEventSource();
-
-	var theme = Timeline.ClassicTheme.create(); // create the theme
-	theme.event.bubble.width = 350;   // modify it
-	theme.event.bubble.height = 300;
-	theme.event.track.height = 15;
-	theme.event.tape.height = 8;
-	var bandInfos = [
-		Timeline.createBandInfo({
-			eventSource:    eventSource,
-			width:          "70%", 
-			intervalUnit:   interval1, 
-			intervalPixels: 100
-		}),
-		Timeline.createBandInfo({
-			overview:       true,
-			eventSource:    eventSource,
-			width:          "10%", 
-			intervalUnit:   interval2, 
-			intervalPixels: 200
-		}),
-		Timeline.createBandInfo({
-			overview:       true,
-			eventSource:    eventSource,
-			width:          "10%", 
-			intervalUnit:   interval3, 
-			intervalPixels: 200
-		}),
-		Timeline.createBandInfo({
-			overview:       true,
-			eventSource:    eventSource,
-			width:          "10%", 
-			intervalUnit:   interval4, 
-			intervalPixels: 200
-		})
-	];
-	bandInfos[1].syncWith = 0;
-	bandInfos[1].highlight = true;
-	bandInfos[2].syncWith = 0;
-	bandInfos[2].highlight = true;
-	bandInfos[3].syncWith = 0;
-	bandInfos[3].highlight = true;
-
-	tl = Timeline.create(document.getElementById("my-timeline"), bandInfos);
-	Timeline.loadXML(XMLFile, function(xml, url) {
-		eventSource.loadXML(xml, url); });
-	setupFilterHighlightControls(document.getElementById("controls"), tl,[0,1,2,3], theme);
-}
-var resizeTimerID = null;
-function onResize() {
-	if (resizeTimerID == null) {
-		resizeTimerID = window.setTimeout(function() {
-			resizeTimerID = null;
-			tl.layout();
-		}, 500);
-	}
-}
-</script>
 </head>
 <body onload="onLoad();" onresize="onResize();">
 <h2>Android timeline</h2>
-<div id="my-timeline" style="font-size: 8px; height: 500px; border: 1px solid #aaa"></div>
+<div id="my-timeline" style="font-size: 10px; height: 450px; border: 1px solid #aaa"></div>
 <noscript>
 This page uses Javascript to show you a Timeline. Please enable Javascript in
 your browser to see the full page. Thank you.
@@ -113,13 +36,16 @@ Go to date: <input id="dateControl" type="date" name="go" onChange="centerSimile
 		$('#dateControl').datepicker();
 </script>
 <div id="imageDescription">
+<h3>Image description</h3>
+<ul class="imageList">
 <script>
 for(var i = 0; i < Images.length; i++)	{
-document.write("<img src=\"" + Images[i] + "\"/>");
-document.write(imageDesc[i]);
-document.write("<br />");
+document.write("<li><img src=\"" + Images[i] + "\"/>");
+document.write("&nbsp;" + imageDesc[i]);
+document.write("</li>");
 }
 </script>
+</ul>
 </div>
 </body>
 </html>

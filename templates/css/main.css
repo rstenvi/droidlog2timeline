@@ -1,0 +1,10 @@
+/* To display list of images side by side */
+.imageList li {
+	display:-moz-inline-box;
+	-moz-box-orient:vertical;
+	display:inline-block;
+	vertical-align:top;
+	word-wrap:break-word;
+	margin: 3mm 3mm;
+	width:240px;
+}

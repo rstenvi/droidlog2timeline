@@ -18,12 +18,19 @@ This is now under development and a release will be coming soon.
 Using the program
 -------------------
 
+External libraries are not included in this distribution, that has to be
+downloaded first. Running "downloadLibraries.py" will download all the necessary
+libraries and place them in the right directory. Running "createWebApp.py" will
+create the web application under the directory "webapp". When running the
+program later, output should be a directory inside this directory (this is the
+default behaviour).
+
 The Android logs first have to be retrieved in some way. The program only uses
 data from "/data/data/" on the device. If you retrieve an image you have to
 mount it first. A list of all programs that the program should gather logs from
 must also be passed to the program, ls /data/data/ > packages.list will work.
 
-The full list of possible flags are shown below:
+The full list of possible flags are shown below (might not be completely updated):
 
     usage: droidlog2timeline.py [-h] [-p PATH] [-c CONFIG] [-l LIST] [-s SKEW]
                                 [-e EARLIESTDATE] [-d LATESTDATE] [-t TIMEZONE]

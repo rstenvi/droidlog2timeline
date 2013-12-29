@@ -5,10 +5,16 @@
 *.db
 
 # Default output-dir from tool
-output/
+webapp
 
 # Used to store testdata
 data/
+
+# External libraries
+libraries
+
+# Default output of logs
+logs
 
 # Lists describing the test data
 packages.list*

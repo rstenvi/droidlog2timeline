@@ -30,7 +30,7 @@ import argparse
 from datetime import datetime
 import math
 import shutil	# To copy files
-import hashlib
+import hashlib, json
 
 try:
 	from lxml import etree as ET
@@ -38,8 +38,16 @@ except ImportError:
 	print "Unable to import lxml, install with easy_install lxml"
 	sys.exit(0)
 
+
 # Global variable that determines if the output is verbose or not
 verbose = False
+storagePaths = []	# Root storage mount points
+
+# If we can create symlinks or not, only possible on UNIX
+createSymlinks = False
+
+# Root output directory
+output = ""
 
 # Calculate SHA-1 hash value of a file
 def sha1OfFile(filepath):
@@ -47,6 +55,16 @@ def sha1OfFile(filepath):
 		print "Calculating hash value of " + filepath
 	with open(filepath, 'rb') as f:
 		return hashlib.sha1(f.read()).hexdigest()
+
+
+def getJsonKeys(keys, Json):
+	Dict = json.loads(Json)
+	ret = {}
+	for key in keys:
+		if key in Dict:
+			ret[key] = Dict[key]
+	return ret
+
 
 # Read and interpret logs
 # The format is something like this:
@@ -104,6 +122,19 @@ def dict_factory(cursor, row):
 		d[col[0]] = row[idx]
 	return d
 
+# Print all links to new javascript file
+def printLinks(webapp):
+	links = []
+	ignore = ["images", "js", "libraries", "css"]
+	files = os.listdir(webapp)
+	for f in files:
+		if (os.path.isdir(os.path.join(webapp, f))) and (f not in ignore):
+			links.append(f)
+	File = open(os.path.join(webapp, "links.js"), "w")
+	File.write("var Links = new Array();\n")
+	for l in links:
+		File.write("Links.push('" + os.path.join(l, "index.html") + "');\n")
+
 # Writes out JavaScript varialbes we have created during the script
 def printVariables(fname, images, intervals):
 	if verbose:
@@ -118,22 +149,30 @@ def printVariables(fname, images, intervals):
 	f.write("var imageDesc = new Array();\n")
 
 	# All image paths and their description
+	printed = []
 	for i in images:
-		f.write("Images.push('" + i["file"] + "');\n")
-		f.write("imageDesc.push('" + i["description"] + "');\n")
+		if i not in printed:
+			printed.append(i)
+			f.write("Images.push('" + i["file"] + "');\n")
+			f.write("imageDesc.push('" + i["description"] + "');\n")
 
 
 # Read in list of packages installed on the phone
 # Is compatible with packages.list on the phone, but a simple ls will also give
 # the correct results
-def readPackagesList(name):
-	if verbose:
-		print "Reading list of packages from " + name
+def readPackagesList(name, pathData):
 	ret = []
-	with open(name, "r") as csvfile:
-		reader = csv.reader(csvfile, delimiter=' ', quotechar='"')
-		for row in reader:
-			ret.append(row)
+	if name == None or os.path.isfile(packages) == False:
+		if verbose:
+			print "Listing contents of " + str(pathData) + " to get programs"
+		ret = droidlog.getAllFilesReg(pathData, "com.[a-zA-Z0-9\.]+")
+	else:
+		if verbose:
+			print "Reading list of packages from " + name
+		with open(name, "r") as csvfile:
+			reader = csv.reader(csvfile, delimiter=' ', quotechar='"')
+			for row in reader:
+				ret.append(row[0])
 	return ret
 
 # Checks if a regular expression matches against a file
@@ -166,18 +205,20 @@ def replaceRegFile(firstPath, name, regStart):
 
 # Read in configuration XML-file into a list of dictionaries
 # Will store any arbitrary attributes, interpreting them is not done here
-def readXML(name, imageDesc, pathData, useOverride=True):
+def readXML(name, imageDesc, pathData, useOverride, logPath):
 	ret = []
+	logFiles = {}
 	f = open(name, "r")
 	tree = ET.parse(f)
 	root = tree.getroot()
 
 	for dbT in root.iter("database"):
-		DB = {}
-		DB["name"] = dbT.get("id")
+		DB = []	# List of duplicate databases
+		allNames = []	# All database names that are duplicates
+		fullName = dbT.get("id")
 
 		# Look for any regular expression in filename
-		regFind = DB["name"].find("{{")
+		regFind = fullName.find("{{")
 		# As long as there is regular expressions in the filename
 		while regFind != -1:
 			# Find program directory (com.xxx.yyy)
@@ -185,16 +226,31 @@ def readXML(name, imageDesc, pathData, useOverride=True):
 			nameEnd = name.find(".xml")
 
 			tmp = replaceRegFile(pathData + name[nameStart:nameEnd] + "/",\
-			DB["name"], regFind)
+			fullName, regFind)
 			
 			# If it is not empty we found a match
 			if tmp != "":
-				DB["name"] = tmp
+				fullName = tmp
 			else:
 				# No match is found, will fail later
 				break
 			# Try to find another regular expression
-			regFind = DB["name"].find("{{")
+			regFind = fullName.find("{{")
+
+		# Check if this consist of duplicate databases
+		doubleFind = fullName.find("[[")
+		if doubleFind != -1:
+			doubleFind2 = fullName.find("]]")
+			doubleName = fullName[doubleFind+2:doubleFind2]
+			names = doubleName.split(" and ")
+			for n in names:
+				n = n.strip()
+			for n in names:
+				DB1 = {"name" : fullName[:doubleFind] + n}
+				allNames.append(DB1["name"])
+				DB.append(DB1)
+		else:
+			allNames.append(fullName)
 
 		tables = []
 		for elem in dbT.iter("table"):
@@ -215,6 +271,8 @@ def readXML(name, imageDesc, pathData, useOverride=True):
 							column["print"] = e[1]
 						elif e[0] == "default":
 							column["default"] = e[1]
+						elif e[0] == "logfile" and (e[1] not in logFiles):
+							attrs["log"] = open(os.path.join(logPath, e[1]), "w")
 						else:
 							attrs[e[0]] = e[1]
 						if e[0] == "query":
@@ -222,7 +280,7 @@ def readXML(name, imageDesc, pathData, useOverride=True):
 					column["attrs"] = attrs
 					columns.append(column)
 				elif el.tag == "icon":
-					icon = {"file" : "images/" + el.text, "description" :\
+					icon = {"file" : "../images/" + el.text, "description" :\
 					el.get("desc")}
 					table["icon"] = icon
 					imageDesc.append(icon)
@@ -231,12 +289,28 @@ def readXML(name, imageDesc, pathData, useOverride=True):
 				elif el.tag == "insert":
 					insert = {"name" : el.text, "id" : el.get("id")}
 					inserts.append(insert)
+
+				# Can only be one filter tag so we add it directly
+				elif el.tag == "filter":
+					table["filter"] = {}
+					tabID = el.get("columns")
+					if tabID != None:
+						cols = tabID.split(";")
+						table["filter"]["columns"] = cols
+					table["filter"]["static"] = el.get("static", "")
+			if "filter" in table:
+				for t in table["filter"].get("columns", []):
+					for c in columns:
+						if c["name"] == t:
+							c["attrs"]["filter"] = True
 			table["columns"] = columns
 			table["inserts"] = inserts
 			table["queries"] = queries
 			tables.append(table)
-		DB["tables"] = tables
-		ret.append(DB)
+
+		# Add all duplicate databases to return value
+		for name in allNames:
+			ret.append({"name" : name, "tables" : tables})
 	return ret
 
 # Retrieve the info from the database, runs a simple query and return the result
@@ -268,6 +342,51 @@ def execQuery(db, query, Log=None):
 		retValue = False
 	return ret, retValue
 
+def findDir(dirs, find):
+	for Dir in dirs:
+		files = os.listdir(Dir)
+		if find in files:
+			return Dir
+	return None
+
+def createMedia(path, xml):
+	error = False
+	ret = error
+	images = ["jpg", "png", "jpeg"]
+
+	# Should be full path
+	if path[0] != "/":
+		return error
+	else:
+		path = path[1:]
+	
+	# Only matches file ending now, magic numbers would be more accurate
+	endingI = path.rfind(".")
+	if endingI == -1:
+		return error
+	if path[endingI+1:] in images:
+		firstDirI = path.find("/")
+		if firstDirI == -1:
+			return error
+		firstDir = path[:firstDirI]
+		prefix = findDir(storagePaths, firstDir)
+		if prefix == None:
+			return error
+		fullPath = os.path.join(prefix, path)
+		imageNameI = fullPath.rfind("/")
+		imageName = fullPath[imageNameI+1:]
+		imagePath = os.path.join(output, "images")
+		if not os.path.exists(imagePath):
+			os.mkdir(imagePath)
+		imagePath = os.path.join(imagePath, imageName)
+		if createSymlinks == True:
+			if not os.path.exists(imagePath):
+				os.symlink(fullPath, imagePath)
+		else:
+			shutil.copy2(fullPath, imagePath)
+		xml.set("image", os.path.join("images", imageName))
+		ret = True
+	return ret
 
 # Uses the configuration XML-file and the source database to create new XML-file
 # that is input to the timeline
@@ -290,6 +409,7 @@ unallocated):
 		if succ == False:
 			if db:	db.close()
 			return False
+
 
 		# We run all the XML-defined queries beforehand to avoid having to run
 		# them for every field value
@@ -319,6 +439,8 @@ unallocated):
 					c["queryResult"] = {"key" : firstV, "value" : secondV, "result" :
 					qq}
 		for q in query:	# For each result
+			Filter = ""
+			if "filter" in t:	Filter = t["filter"].get("static", "")
 			event = ET.Element("event")
 			if "icon" in t:
 				if "file" in t["icon"]:
@@ -332,13 +454,33 @@ unallocated):
 				elif "type" in c["attrs"]:
 					types = c["attrs"]["type"].split(";")
 					for ty in types:
-						if int(ty.split(":")[0]) == q[c["name"]]:
-							ins = ty.split(":")[1]
+						if ty != "" and int(ty.split(":")[0]) == q[c["name"]]:
+							ins = ty.split(":")[1] + " (" + str(q[c["name"]]) + ")"
 							break
-				elif type(q[c["name"]]) == int or type(q[c["name"]]) == long:
+					# Fallback if it's unknown, print the integer
+					if ins == "":
+						ins = str(q[c["name"]])
+				elif "filetype" in c["attrs"]:
+					Type = c["attrs"]["filetype"]
+					if Type == "json" and "select" in c["attrs"]:
+						Dict = getJsonKeys(c["attrs"]["select"].split(";"), q[c["name"]])
+						ins = ""
+						for key in Dict:
+							ins += "<br /><i>" + str(key) + ": </i>" + str(Dict[key])
+					elif Type == "path":
+						ins = q[c["name"]]
+						createMedia(ins, event)
+					else:
+						ins = "ERROR"
+				elif type(q[c["name"]]) == int or type(q[c["name"]]) == long or type(q[c["name"]]) == float:
 					ins = str(q[c["name"]])
 				else:
 					ins = q[c["name"]].encode('ascii', 'xmlcharrefreplace')
+				
+
+				# Write to log file if that is specified
+				if "log" in c["attrs"]:
+					c["attrs"]["log"].write(q[c["name"]] + "\n")
 
 				# Separate case where we need to get the result from a different DB
 				# The queries have been done already, just need to find it
@@ -347,6 +489,10 @@ unallocated):
 						if q[c["name"]] == res[c["queryResult"]["key"]]:
 							ins = str(res[c["queryResult"]["value"]])
 							break
+				
+				# Add to filter if this column is specified with it
+				if "filter" in c["attrs"] and c["attrs"]["filter"] == True:
+					Filter += str(ins)
 				
 				if "append" in c["attrs"]:
 					ins += " " + c["attrs"]["append"]
@@ -377,7 +523,10 @@ unallocated):
 							else:
 								event.set(c["attrs"]["id"], ins2 + ins)
 				else:
+					print "No id attribute in " + c["name"]
 					return False
+			# Always set filter, might be empty
+			event.set("eventID", Filter)
 			if dateT < endD and dateT > (startD-1):
 				xml.append(event)
 				count += 1
@@ -445,7 +594,6 @@ def getUnallocated(xmlConfig, dbPath):
 	# - Should also write unallocated log to a separate file
 	return sqlResult
 
-
 if __name__== '__main__':
 	# Add the parser object
 	parser = argparse.ArgumentParser(description=' droidlog2timeline - Create timeline for Android',
@@ -461,7 +609,7 @@ if __name__== '__main__':
 
 	# Path to the CSV file that contain the list of all the packages installed on
 	# the phone
-	parser.add_argument('-l', '--list', dest='list', default='packages.list',\
+	parser.add_argument('-l', '--list', dest='list', default=None, type=str,\
 	help='Full path to list of packages on the phone')
 
 	# Number of seconds to skew the clock
@@ -484,11 +632,11 @@ if __name__== '__main__':
 
 	# The directory for output
 	parser.add_argument('-o', '--output', dest='output', type=str,
-	default="output/", help='Output directory')
+	default="webapp/output/", help='Output directory')
 
 	# Log file, can be used as documentation for what has been done
 	parser.add_argument('-L', '--log', dest='log', type=str,
-	default="droidlog.log", help='Logfile of what has been done')
+	default="logs", help='Logfile of what has been done')
 
 	# Verbose output
 	parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
@@ -514,6 +662,16 @@ if __name__== '__main__':
 	action='store_true',
 	help="Disallow override of attribute names")
 	
+	# Use symlinks for media
+	parser.add_argument('-S', '--symlinks', dest='symlinks',
+	action='store_true',
+	help="Use symlinks for displaying media, only possible on UNIX")
+
+	# Root paths for gathering media
+	parser.add_argument('-r', '--root-paths', dest='roots', nargs='+', default=[],\
+	help='Root paths for various mount points, must be full path and must have'
+	+ ' the same structure as on the device')
+
 	# Get program directory
 	thisPath = os.path.dirname(os.path.realpath(__file__))
 
@@ -523,23 +681,32 @@ if __name__== '__main__':
 
 	disallow_override = args["disallow"]
 
+	createSymlinks = args["symlinks"]
+
+	storagePaths = args["roots"]
+
 	Carve = args["carve"]
 	if Carve:
 		# Import module for SQLite carving
 		sys.path.insert(0, 'src/SQLiteCarving')
 		import SQLiteCarver
 
+	sys.path.insert(0, 'src/droidlog')
+	import droidlog
+
 
 	verbose = args["verbose"]
 
-	pathConfig = thisPath + "/" + args["config"]	# Path to configuration files
+	pathConfig = os.path.join(thisPath, args["config"])	# Path to configuration files
 
 	pathData = args["path"]	# Path to database files
 
 	packages = args["list"]	# List of packages installed on the phone
 
-	logfile = args["log"]
-	log = open(logfile, "w")	# Output file
+	logdir = args["log"]
+	if not os.path.exists(logdir):
+		os.makedirs(logdir)
+	log = open(os.path.join(logdir, "droidlog2timeline.log"), "w")	# Output file
 
 	skew = args["skew"]
 
@@ -554,22 +721,10 @@ if __name__== '__main__':
 	output = args["output"]
 	if not os.path.exists(output):
 		os.makedirs(output)
-	if not os.path.exists(thisPath + "/templates/"):
-		print "No path to templates"
-		sys.exit(0)
-	if not os.path.isfile(thisPath + "/templates/index.html"):
-		print "File " + thisPath + "/templates/index.html does not exist"
-	shutil.copy2(thisPath + "/templates/index.html", output + "/index.html")
-	if os.path.exists(thisPath + "/templates/js/"):
-		if os.path.exists(output + "/js/") == False:
-			shutil.copytree(thisPath + "/templates/js/", output + "/js/")
-	if os.path.exists(thisPath + "/templates/css/"):
-		if os.path.exists(output + "/css/") == False:
-			shutil.copytree(thisPath + "/templates/css/", output + "/css/")
-	if os.path.exists(thisPath + "/templates/images/"):
-		if os.path.exists(output + "/images/") == False:
-			shutil.copytree(thisPath + "/templates/images/", output + "/images/")
 
+	templates = os.path.join(thisPath, "templates")
+	shutil.copy2(os.path.join(templates, "index.html"),\
+	os.path.join(output, "index.html"))
 
 	# Generate timestamps for earliest and latest date
 	startD = args["earliestdate"]
@@ -602,19 +757,13 @@ if __name__== '__main__':
 		print pathData + " is not a directory"
 		sys.exit(0)
 	
-	if os.path.isfile(packages) == False:
-		print packages + " is not a valid file"
-		sys.exit(0)
-
-	# Should let the user chose output dir, so we don't cludder this dir
-	# But then we also need to change the html file
-	f = open(output + "/logs.xml", "w")	# Output file
+	f = open(os.path.join(output, "logs.xml"), "w")	# Output file
 
 	root = ET.Element('data')	# Root element
 	
 	# Get all packages we should check, can gather this from the device:
 	# /data/system/packages.list
-	packs = readPackagesList(packages)
+	packs = readPackagesList(packages, pathData)
 	if verbose:
 		print "Read in " + str(len(packs)) + " possible packages"
 	log.write("PACKAGES " + str(len(packs)) + " possible packages\n")
@@ -627,7 +776,7 @@ if __name__== '__main__':
 		intervals = ["SECOND", "MINUTE", "HOUR", "DAY"]
 		files = ["radio.log", "main.log", "events.log"]
 		for fi in files:
-			evs = readLogcat(pathData + "/" + fi, timezone)
+			evs = readLogcat(os.path.join(pathData, fi), timezone)
 			for e in evs:
 				event = ET.Element("event")
 				event.set("title", e["msg"])
@@ -648,7 +797,7 @@ if __name__== '__main__':
 				ret = True
 				# Find the correct ending, .1, .2, etc
 				ending = "" if count == 0 else "." + str(count)
-				XMLconf = pathConfig + "/" + l[0] + ".xml" + ending
+				XMLconf = os.path.join(pathConfig, l) + ".xml" + ending
 
 				# Check if file exist
 				if os.path.isfile(XMLconf) == False:
@@ -659,18 +808,23 @@ if __name__== '__main__':
 					log.write("TRYING " + XMLconf + "\n")
 					
 				tmpImageDescs = []
-				xmlO = readXML(XMLconf, tmpImageDescs, pathData, disallow_override)	# Read xml configuration
+				xmlO = readXML(XMLconf, tmpImageDescs, pathData, disallow_override, logdir)	# Read xml configuration
 				eventList = []	# Temporary storage we append if we succeed
+				dbFinds = 0
 				for x in xmlO:	# For each database
-					dbPath = pathData + "/" + l[0] + "/" + x["name"]	# Full path
+					tmpDir = os.path.join(pathData, l)
+					dbPath = os.path.join(tmpDir, x["name"])	# Full path
 					if os.path.isfile(dbPath) == False:
 						log.write("MISSING " + dbPath + "\n")
-						ret = False
-						break
+						continue
+#						ret = False
+#						break
+					dbFinds += 1
 					if hashcheck:
 						hashSum = sha1OfFile(dbPath)
 					if Carve:
-						unallocated = getUnallocated(x, pathData + "/" + l[0] + "/")
+						tmpDir = os.path.join(pathData, l)
+						unallocated = getUnallocated(x, tmpDir)
 					ret = runQueries(dbPath, x, eventList, skew, startD, endD,
 					timezone, Queries, unallocated)
 					if hashcheck:
@@ -682,7 +836,7 @@ if __name__== '__main__':
 						log.write("HASH " + hashSum + " " + dbPath + "\n")
 					if ret == False:
 						break
-				if ret == True:
+				if ret == True and dbFinds > 0:
 					for q in Queries:	log.write("QUERY " + q + "\n")
 					Queries = []
 					log.write("SUCCESS " + XMLconf + " " + dbPath + "\n")
@@ -698,4 +852,7 @@ if __name__== '__main__':
 	f.write(str(ET.tostring(root, pretty_print=True, xml_declaration=True)))
 
 	# Print JavaScript variables that are used by the timeline
-	printVariables(output + "/variables.js", imageDescs, intervals)
+	printVariables(os.path.join(output, "variables.js"), imageDescs, intervals)
+
+	# Go up one directory and print new file with links
+	printLinks(os.path.dirname(os.path.dirname(output)))
