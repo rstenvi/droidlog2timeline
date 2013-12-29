@@ -448,7 +448,7 @@ def printTable(tables, collection):
 def findAllUnallocated(databases, verbose=False):
 	ret = []
 	for d in databases:
-		db = d["path"] + "/" + d["filename"]
+		db = os.path.join(d["path"], d["filename"])
 		signatures = createSignatures(db)
 		for key in signatures.keys():
 			if key not in d["tables"]:

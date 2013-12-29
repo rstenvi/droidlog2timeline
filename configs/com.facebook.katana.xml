@@ -5,17 +5,34 @@
 <column id="start">timestamp_ms</column>
 <column id="description">text</column>
 
-<!--
-This is JSON, should be able to parse this in the application and only print the
-important parts.
--->
-<column id="description">sender</column>
-<column id="description">coordinates</column>
+<column id="description" filetype="json" select="email;user_key;name;">sender</column>
+<column id="description" filetype="json" select="latitude;longitude;">coordinates</column>
 <column id="description">source</column>
 <column id="description">publicity</column>
+
 <icon desc="Facebook messages">facebook.png</icon>
 <where>timestamp_ms!=0</where>
-<insert id="caption">Facebook messages, both to and from</insert>
+<insert id="caption">Facebook messages sent, both to and from the owner</insert>
+<filter columns="text;sender" static="facebook" />
 </table>
 </database>
+
+<information>
+ <short>Facebook application</short>
+ <description>
+Messages received and sent from the application. The only distinction between
+messages received and sent is the name. Only says who sent the message, not who
+it was sent to.
+ </description>
+ <tested>
+  <device os="Android 4.1.2" device="Samsung Galaxy S3"/>
+ </tested>
+ <extra>
+  <table id="messages"
+  columns="mms_attachements;attachements;shares;affected_users"
+  reason="Unknown format" />
+  <table id="threads" reason="Unknown purpose and usefulness" />
+  <table id="folders" reason="Unknown purpose and usefulness" />
+ </extra>
+</information>
 </root>

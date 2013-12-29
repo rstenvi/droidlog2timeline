@@ -10,6 +10,7 @@ match the regexp.
 <column id="start">created</column>
 <icon desc="Twitter usage">twitter.png</icon>
 <insert id="caption">Twitter messages that are posted</insert>
+<filter columns="content" static="twitter" />
 </table>
 
 <!--
@@ -21,4 +22,18 @@ Generates a lot of data, which does not seem to be relevant
 </table>
 -->
 </database>
+
+<information>
+ <short>Twitter messages that are posted</short>
+ <description>
+The content and timestamp from any Twitter messages that are posted.
+ </description>
+ <tested>
+  <device os="Android 4.1.2" device="Samsung Galaxy S3" />
+ </tested>
+ <extra>
+  <table id="search_queries" columns="name;query;time"
+  reason="Too much useless data" />
+ </extra>
+</information>
 </root>

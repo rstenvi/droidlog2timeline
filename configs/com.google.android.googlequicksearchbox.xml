@@ -5,4 +5,11 @@
 <column id="start">insert_time</column>
 </table>
 </database>
+
+<information>
+ <short>Built in search box for Google</short>
+ <description>
+Separate application that leads to a Google search.
+ </description>
+</information>
 </root>

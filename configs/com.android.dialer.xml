@@ -1,0 +1,22 @@
+<root>
+<database id="databases/dialer.db">
+<table id="smartdial_table">
+<column id="title">display_name</column>
+<column id="start">last_time_used</column>
+<column id="description">times_used</column>
+<column id="description">phone_number</column>
+<filter columns="display_name;phone_number" />
+</table>
+</database>
+
+<information>
+ <short>Suggest contacts based on initial input</short>
+ <tested>
+  <device os="Android 4.4" device="emulator"/>
+ </tested>
+ <description>
+Shows when a contact was last selected. Should come right before another
+connection mechanism to another person, like call or SMS.
+ </description>
+</information>
+</root>

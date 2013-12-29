@@ -6,7 +6,17 @@
 	<icon desc="YouTube activity">YouTube-icon.png</icon>
 	<where>date!=0</where>
 	<insert id="caption">YouTube searches</insert>
+	<filter columns="query" static="youtube" />
   </table>
  </database>
+
+
+<information>
+ <short>View videos on YouTube</short>
+ <description>Searching for a video on YouTube.</description>
+ <tested>
+  <device os="Android 4.1.2" device="Samsung Galaxy S3"/>
+ </tested>
+</information>
 </root>
 

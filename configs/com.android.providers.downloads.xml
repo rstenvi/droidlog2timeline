@@ -1,12 +1,24 @@
 <root>
-<database id="db/downloads.db">
+<database id="{{db|databases}}/downloads.db">
 <table id="downloads">
 <column id="title">title</column>
 <column id="description">description</column>
-<column id="description">uri</column>
+<column id="description" logfile="urls.log">uri</column>
 <column id="start">lastmod</column>
 <icon desc="Downloads">Download.png</icon>
 <insert id="caption">Last time a downloaded file has been modified</insert>
+<filter columns="title" static="downloads" />
 </table>
 </database>
+
+<information>
+ <short>Handles downloaded files</short>
+ <description>
+Shows when a downloaded file was last modified and where it was downloaded from.
+ </description>
+ <tested>
+  <device os="Android 4.1.2" device="Samsung Galaxy S3"/>
+  <device os="Android 4.4" device="emulator"/>
+ </tested>
+</information>
 </root>

@@ -5,12 +5,14 @@
 <column id="description">note</column>
 <column id="start">created</column>
 <insert id="caption">When note was first created</insert>
+<filter static="notes" />
 </table>
 <table id="notes">
 <column id="title">title</column>
 <column id="description">note</column>
 <column id="start">modified</column>
 <insert id="caption">When note was last modified</insert>
+<filter static="notes" />
 </table>
 </database>
 </root>

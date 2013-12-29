@@ -4,11 +4,12 @@
 
 <column id="title" default="Unknown">name</column>
 <column id="start">date</column>
-<column id="description">number</column>
+<column id="description" logfile="contacts.log">number</column>
 <column id="description" append="seconds">duration</column>
 <column id="description" type="2:Outgoing;1:Incoming;3:Missed;">type</column>
 <icon desc="Phone call">Phone-icon.png</icon>
 <insert id="caption">Incoming, outgoing or missed phone calls</insert>
+<filter columns="number;name" static="phone calls" />
 </table>
 </database>
 </root>

@@ -10,9 +10,10 @@
 <column id="description" override="Owner">ownerAccount</column>
 <column id="description">sync_events</column>
 <where>_sync_time!=0</where>
+<insert id="caption">When event was synced with account</insert>
 </table>
 <table id="Events">
-<column id="title">title</column>
+<column id="title" override="Event title">title</column>
 <column id="start">dtstart</column>
 <column id="end">dtend</column>
 <column id="description" override="Account">_sync_account</column>

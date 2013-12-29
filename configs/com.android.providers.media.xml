@@ -1,26 +1,75 @@
 <root>
-<database id="db/external.db">
+<!--
+As far as I can tell, Android 4.4 uses databases as path while lower uses db
+external.db and internal.db are duplicates for everything that we care about,
+the "and" keyword enclosed in "[[...]]" will make sure that both are used
+-->
+<database id="{{db|databases}}/[[external.db and internal.db]]">
+<!-- date modified -->
 <table id="files">
 <column id="title">title</column>
-<column id="description" override="Data">_data</column>
+<column id="description" filetype="path" override="Data">_data</column>
 <column id="start" divide="1">date_modified</column>
 <column id="description">description</column>
 <column id="description" override="Display name">_display_name</column>
 <column id="description" override="Bucket display name">bucket_display_name</column>
 <column id="description">mime_type</column>
 <column id="description" override="Size" append="Bytes">_size</column>
-
+<column id="description">latitude</column>
+<column id="description">longitude</column>
 <icon desc="Media files">media.png</icon>
-
-<where>date_modified!=0</where>
-
+<where>date_modified!=0 and _size > 0</where>
 <insert id="caption">Modification of external files</insert>
+<filter columns="title;bucket_display_name;mime_type" static="media" />
+</table>
+
+<table id="files">
+<!-- date added -->
+<column id="title">title</column>
+<column id="description" filetype="path" override="Data">_data</column>
+<column id="start" divide="1">date_added</column>
+<column id="description">description</column>
+<column id="description" override="Display name">_display_name</column>
+<column id="description" override="Bucket display name">bucket_display_name</column>
+<column id="description">mime_type</column>
+<column id="description" override="Size" append="Bytes">_size</column>
+<column id="description">latitude</column>
+<column id="description">longitude</column>
+<icon desc="Media files">media.png</icon>
+<where>date_added!=0 and _size > 0</where>
+<insert id="caption">The first time the file was added</insert>
+<filter columns="title;bucket_display_name;mime_type" static="media" />
+</table>
+
+<table id="files">
+<!-- date taken -->
+<column id="title">title</column>
+<column id="description" filetype="path" override="Data">_data</column>
+<column id="start">datetaken</column>
+<column id="description">description</column>
+<column id="description" override="Display name">_display_name</column>
+<column id="description" override="Bucket display name">bucket_display_name</column>
+<column id="description">mime_type</column>
+<column id="description" override="Size" append="Bytes">_size</column>
+<column id="description">latitude</column>
+<column id="description">longitude</column>
+<icon desc="Media files">media.png</icon>
+<where>datetaken!=0 and _size > 0</where>
+<insert id="caption">Date the media was taken</insert>
+<filter columns="title;bucket_display_name;mime_type" static="media" />
 </table>
 </database>
+
+<information>
+ <short>Handling of files</short>
+ <description>
+The time a file has been modified, created or taken. Files can be
+any type of files, like downloaded or image from the camera.
+ </description>
+ <tested>
+  <device os="Android 4.1.2" device="Samsung Galaxy S3"/>
+  <device os="Android 4.4" device="emulator"/>
+ </tested>
+</information>
 </root>
 
-<!--
-Extra timestamps:
-datetaken
-date_modified
--->

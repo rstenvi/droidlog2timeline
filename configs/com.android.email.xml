@@ -12,6 +12,7 @@
 
 <icon desc="Incoming or outgoing email">gmail.png</icon>
 <insert id="caption">Incoming or outgoing e-mail messages</insert>
+<filter columns="displayName;subject" static="gmail email e-mail" />
 </table>
 </database>
 </root>

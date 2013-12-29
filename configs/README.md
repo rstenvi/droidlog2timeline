@@ -12,6 +12,7 @@ Basic format
          <column id="SIMILE keyword">column</column>
          <icon desc="Description of image">image.png</icon>
          <where>column != NULL and column2 != 0</where>
+         <filter columns="column1;column2" static="text" />
         </table>
       </database>
     </root>
@@ -40,6 +41,10 @@ The database id attribute must be the path to the database after what is
 There can be arbitrary many databases, tables and columns. Icon and where can be
 omitted.
 
+The filter tag is used to be able to perform better filtering of the output. The
+static attribute will place the text directly into the event. The columns
+attribute will take the result of the SQL query and the those columns.
+
 Extra stuff
 -----------
 
@@ -64,6 +69,12 @@ attributes for the column tag.
   query="SELECT key,value FROM table". The key is what is returned from the
   original query, the value is the column in the new table which we will replace
   the key with. Both key and value are columns in the new table.
+- filetype: Determines what type of data is stored in that column, the following
+  values are supported:
+  - json: Must be accompanied with with select="key1;key2;..;"
+  - path: The value is a path to a file that can be displayed on the timeline.
+- logfile: All the values in this attribute will be printed to the filename.
+  This can be useful for some values like, URL, phone numbers etc.
 
 The columns that contain a timestamp are different and can not translated the
 same way, the only extra attribute is the "divide" attribute. That is also the
@@ -83,3 +94,80 @@ Formatting information
   name can be a regular expression, but it must be enclosed in {{...}}. The path
   and DB name should be in it's own regular expression. This is because the
   program will only look in directory to find a match.
+- Duplicate databases: When two or more databases have the same format, as far
+  as the information the xml file gathers, the "and" keyword can be used. The
+  filenames must be enclosed in "[[" and "]]" and each file must be separated by
+  " and ". This should be used the same way as regular expression, inside one
+  directory. It can only be used once and not inside regular expression. Media
+  files is an example where this is used, internal and external storage have
+  similar databases and the same XML-config can be used for both.
+
+Information about file
+----------------------
+
+Information about the file itself is also stored in the XML file. This is stored
+under the information tag under the root tag.
+
+    <information>
+     <short>Short description of program</short>
+     <tested>
+      <device os="Android x.x" device="physical device name/emulator"/>
+     </tested>
+     <description>Longer description of what is expected output using this file</description>
+     <extra>
+      <table id="tableName" columns="column1;column2"
+       reason="Reason for not using this data" />
+     </extra>
+    </information>
+
+In some databases there is extra information that we don't know if it is really
+useful or we don't know the format of it, this can be marked in the extra tag.
+This should be seen as future work.
+
+readXMLInfo.py
+--------------
+
+This script can be used to check which devices and operating systems each file
+has been tested against. It uses the information under the "information" tag in
+each XML file.
+
+    $ ./readXMLInfo.py -h
+
+    usage: readXMLInfo.py [-h]
+                      [-s {short,description,tested,all} [{short,description,tested,all} ...]]
+                      [-d DEVICE] [-v VERSION] [-i] [-m]
+
+    Read info about configuration files
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -s {short,description,tested,extra,all} [{short,description,tested,extra,all} ...], --show
+         {short,description,tested,extra,all} [{short,description,tested,extra,all} ...]
+                            Display all available info (overrides everything else)
+                            (default: ['all'])
+      -d DEVICE, --device DEVICE
+                            Display information about configuration files the
+                            device has been tested against (default: )
+      -v VERSION, --version VERSION
+                            Display information about a specific OS version number
+                            (default: )
+      -p PROGRAM, --program PROGRAM
+                            Display information about specific program match
+                            (default: )
+      -i {program,device,version} [{program,device,version} ...], --inverse
+         {program,device,version} [{program,device,version} ...]
+                            Inverse program, device or version match (default: [])
+      -m, --missing         Print those without information (default: False)
+
+
+Using no option will print all available information that exist, "-m" can be
+used to also include programs where information is unavailable. "-s" decides how
+much information to display, possible values are: short, description, tested,
+extra and all, which displays everything. The name of the XML file is always
+printed.
+
+To only print information about specific programs, devices or versions,
+use "-p", "-d" or "-v", the program will try to find that text in the corresponding
+attribute in the XML file. "-d Galaxy" for example will print information for
+any version of the Galaxy devices. "-i" can be used to reverse the match, for
+example to find all files where that device has not been tested.
