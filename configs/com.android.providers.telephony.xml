@@ -6,13 +6,8 @@
 <column id="description" default="Empty">subject</column>
 <column id="description" override="Message">body</column>
 <column id="description" override="Incoming/outgoing"
-type="1:Incoming;2:Outgoing;">type</column>
-
-<!--
-This has changed in Android 4.4
-- New numbers are used, 5 is incoming, unsure about rest
--->
-<column id="description" type="1:Seen;2:Not seen;">seen</column>
+type="1:Incoming;2:Outgoing;3:Draft;4:Unknown;5:Failed to send;">type</column>
+<column id="description" type="1:Seen;0:Not seen;">seen</column>
 <icon desc="Incoming or outgoing SMS">sms.png</icon>
 <insert id="caption">Incoming or outgoing SMS</insert>
 <filter columns="address;body" static="sms" />

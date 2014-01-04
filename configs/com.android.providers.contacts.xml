@@ -12,4 +12,14 @@
 <filter columns="number;name" static="phone calls" />
 </table>
 </database>
+
+<information>
+ <short>Application that handles phone calls</short>
+ <description>
+All incoming, outgoing and missed phone calls.
+ </description>
+ <tested>
+  <device os="Android 4.4" device="emulator" />
+ </tested>
+</information>
 </root>

@@ -14,6 +14,7 @@
   <table id="history">
     <column id="title">title</column>
 	 <column id="description" logfile="urls.log">url</column>
+	 <column id="description">visits</column>
 	 <column id="start">date</column>
     <icon desc="Visiting a web page">web.png</icon>
 	 <where>date!=0</where>
@@ -29,4 +30,38 @@
 	 <filter columns="search" static="search" />
   </table>
 </database>
+
+
+<database id="app_webview/Cookies">
+<table id="cookies">
+<column id="title">host_key</column>
+<column id="start" epoch="windows" divide="1000000">creation_utc</column>
+<column id="description">name</column>
+<column id="description">value</column>
+<icon desc="Cookie in the browser">cookie.png</icon>
+<insert id="caption">Cookie placed in browser</insert>
+<filter columns="host_key" static="cookie" />
+</table>
+
+<table id="cookies">
+<column id="title">host_key</column>
+<column id="start" epoch="windows" divide="1000000">last_access_utc</column>
+<column id="description">name</column>
+<column id="description">value</column>
+<icon desc="Cookie in the browser">cookie.png</icon>
+<insert id="caption">Last time this cookie was used</insert>
+<filter columns="host_key" static="cookie" />
+</table>
+</database>
+
+<information>
+ <short>Default browser</short>
+ <description>
+Various sites visited, bookmarks created, searches performed and cookies and
+when they where placed in the browser.
+ </description>
+ <tested>
+  <device os="Android 4.4" device="emulator" />
+ </tested>
+</information>
 </root>
