@@ -12,6 +12,7 @@ function onLoad() {
 			eventSource:    eventSource,
 			width:          "70%",
 			intervalUnit:   interval1,
+			timeZone: timeZone,
 			intervalPixels: 100
 		}),
 		Timeline.createBandInfo({
@@ -19,6 +20,7 @@ function onLoad() {
 			eventSource:    eventSource,
 			width:          "10%",
 			intervalUnit:   interval2,
+			timeZone: timeZone,
 			intervalPixels: 200
 		}),
 		Timeline.createBandInfo({
@@ -26,6 +28,7 @@ function onLoad() {
 			eventSource:    eventSource,
 			width:          "10%",
 			intervalUnit:   interval3,
+			timeZone: timeZone,
 			intervalPixels: 200
 		}),
 		Timeline.createBandInfo({
@@ -33,6 +36,7 @@ function onLoad() {
 			eventSource:    eventSource,
 			width:          "10%",
 			intervalUnit:   interval4,
+			timeZone: timeZone,
 			intervalPixels: 200
 		})
 	];

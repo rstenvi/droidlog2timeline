@@ -30,7 +30,7 @@ import argparse
 from datetime import datetime
 import math
 import shutil	# To copy files
-import hashlib, json
+import hashlib, json, pprint
 
 try:
 	from lxml import etree as ET
@@ -136,10 +136,11 @@ def printLinks(webapp):
 		File.write("Links.push('" + os.path.join(l, "index.html") + "');\n")
 
 # Writes out JavaScript varialbes we have created during the script
-def printVariables(fname, images, intervals):
+def printVariables(fname, images, intervals, timezone=0):
 	if verbose:
 		print "Writing JavaScript variables"
 	f = open(fname, "w")
+	f.write("var timeZone=" + str(timezone) + ";\n")
 	f.write("var interval1=Timeline.DateTime." + intervals[0] + ";\n")
 	f.write("var interval2=Timeline.DateTime." + intervals[1] + ";\n")
 	f.write("var interval3=Timeline.DateTime." + intervals[2] + ";\n")
@@ -513,12 +514,17 @@ unallocated):
 						else:
 							if c["attrs"]["id"] == "start" or c["attrs"]["id"] == "end":
 								divide = 1000
+								subtract = 0
+								if "epoch" in c["attrs"]:
+									if c["attrs"]["epoch"] == "windows":
+										divide = 10000000
+										subtract = 11644473600
 								if "divide" in c["attrs"]:
 									divide = int(c["attrs"]["divide"])
+								val = int( ( (long(q[c["name"]])/divide) - subtract) )
 								if c["attrs"]["id"] == "start":
-									dateT = int(math.floor(long(q[c["name"]])/divide))
-								ins = time.strftime('%b %d %Y %H:%M:%S ' + timezone,\
-								time.localtime((int(q[c["name"]])/divide)+skew))
+									dateT = int(math.floor(val))
+								ins = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(val+skew))
 								event.set(c["attrs"]["id"], ins)
 							else:
 								event.set(c["attrs"]["id"], ins2 + ins)
@@ -527,7 +533,9 @@ unallocated):
 					return False
 			# Always set filter, might be empty
 			event.set("eventID", Filter)
-			if dateT < endD and dateT > (startD-1):
+
+			# Check if goes beyond our boundaries
+			if dateT <= endD and dateT >= (startD-1):
 				xml.append(event)
 				count += 1
 		if verbose:
@@ -628,7 +636,7 @@ if __name__== '__main__':
 	# The timezone that the phone is in. Not sure what timesone the database
 	# timestamps are in.
 	parser.add_argument('-t', '--timezone', dest='timezone', type=str,
-	default="GMT+0000", help='Timezone of the phone (GMT+XXXX)')
+	default="+00:00", help='Timezone of the phone (+XXXX)')
 
 	# The directory for output
 	parser.add_argument('-o', '--output', dest='output', type=str,
@@ -734,17 +742,11 @@ if __name__== '__main__':
 	else:
 		startD = time.strptime(startD, "%Y-%m-%dT%H:%M")
 		startD = time.mktime(startD)
+
+
 	if endD == None:
-		endD = int(math.ceil(time.mktime(time.gmtime())))
-		add = True
-		if timezone[3] == "-":
-			add = False
-		zone = timezone[4:]
-		num = int(zone[:2])*3600
-		num += int(zone[2:])*60
-		if add == False:
-			num = -num
-		endD += num
+		# Max time possible
+		endD = math.pow(2, 32)
 	else:
 		endD = time.strptime(endD, "%Y-%m-%dT%H:%M")
 		endD = time.mktime(endD)
@@ -787,6 +789,7 @@ if __name__== '__main__':
 
 
 	else:	# SQLite databases
+		root.set("date-time-format", "iso8601")
 		dbPath = ""
 		XMLconf = ""
 		unallocated = None
@@ -817,8 +820,6 @@ if __name__== '__main__':
 					if os.path.isfile(dbPath) == False:
 						log.write("MISSING " + dbPath + "\n")
 						continue
-#						ret = False
-#						break
 					dbFinds += 1
 					if hashcheck:
 						hashSum = sha1OfFile(dbPath)
@@ -852,7 +853,8 @@ if __name__== '__main__':
 	f.write(str(ET.tostring(root, pretty_print=True, xml_declaration=True)))
 
 	# Print JavaScript variables that are used by the timeline
-	printVariables(os.path.join(output, "variables.js"), imageDescs, intervals)
+	printVariables(os.path.join(output, "variables.js"), imageDescs, intervals,\
+	int(timezone[:3]))
 
 	# Go up one directory and print new file with links
 	printLinks(os.path.dirname(os.path.dirname(output)))

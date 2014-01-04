@@ -193,6 +193,7 @@ def getHeaderIntSize(var):
 # match the beginning of the header.
 def findStructure(sigs, block):
 	start = 0	# Place to start looking
+	add = 1
 	end = len(block)
 	lengths = []
 	ret = {}
