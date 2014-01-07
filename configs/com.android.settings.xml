@@ -1,0 +1,26 @@
+
+<root>
+<database id="databases/superuser.sqlite">
+<table id="log">
+<column id="title">command</column>
+<column id="start" divide="1">date</column>
+<column id="description">package_name</column>
+<column id="description">name</column>
+<column id="description">action</column>
+<filter columns="command;package_name" static="root superuser" />
+</table>
+</database>
+
+<information>
+ <short>Actions done with root privileges</short>
+ <description>
+If the phone has been rooted, this can display actions taken by applications
+that has root privileges. This is not necessarily action specified by the user,
+it might be built into the application. There can be some applications with root
+privileges that are not logged.
+ </description>
+ <tested>
+  <device os="CynagenMod 10.1 (coldblue_) (Android 4.2.2)" device="Huawei U8800" /> 
+ </tested>
+</information>
+</root>

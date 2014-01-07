@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="ASCII"?>
+
+<!--
+Don't think multiple users are possible on Android Chrome, but have added support for it
+-->
+<root>
+<database id="app_chrome/{{Default|Profile [0-9]+}}/[[History and Archived History]]">
+<table id="urls">
+<column append="(Last time visited)" id="title">title</column>
+<column id="start" epoch="windows" divide="1000000">last_visit_time</column>
+<column id="description" logfile="urls.log">url</column>
+<column id="description" override="Number of visits">visit_count</column>
+<column id="description" override="Times typed in">typed_count</column>
+<icon desc="Visiting a web page">web.png</icon>
+<insert id="caption">Last time web site was visited</insert>
+<filter columns="title;url" static="web history" />
+</table>
+
+<table id="visits">
+<column id="title" append="(Visit)" query="SELECT id, title FROM urls">url</column>
+<column id="start" epoch="windows" divide="1000000">visit_time</column>
+<column id="description" query="SELECT id, url FROM urls">url</column>
+<column id="description" append="Unknown">visit_duration</column>
+<column id="description" default="Typed in"
+query="direct|SELECT url FROM urls WHERE id = (SELECT url FROM visits WHERE id = ?);"
+override="From site">from_visit</column>
+<icon desc="Visiting a web page">web.png</icon>
+<insert id="caption">Web site was visited</insert>
+<filter columns="url" static="web history" />
+</table>
+</database>
+
+<database id="app_chrome/{{Default|Profile [0-9]+}}/Cookies">
+
+<table id="cookies">
+<column id="title">host_key</column>
+<column id="start" epoch="windows" divide="1000000">creation_utc</column>
+<column id="description">name</column>
+<column id="description">value</column>
+<icon desc="Cookie in the browser">cookie.png</icon>
+<insert id="caption">Cookie placed in browser (first created)</insert>
+<filter columns="host_key" static="cookie" />
+</table>
+
+<table id="cookies">
+<column id="title">host_key</column>
+<column id="start" epoch="windows" divide="1000000">last_access_utc</column>
+<column id="description">name</column>
+<column id="description">value</column>
+<icon desc="Cookie in the browser">cookie.png</icon>
+<insert id="caption">Last time cookie was accessed</insert>
+<filter columns="host_key" static="cookie" />
+</table>
+
+</database>
+
+<database id="app_chrome/{{Default|Profile [0-9]+}}/Shortcuts">
+<table id="omni_box_shortcuts">
+<column id="title">contents</column>
+<column id="start" epoch="windows" divide="1000000">last_access_time</column>
+<column id="description">url</column>
+<column id="description" override="Typed in">text</column>
+<insert id="caption">Selected suggestion based on text typed in url</insert>
+<filter columns="contents;url" static="web suggestion" />
+<icon desc="Visiting a web page">web.png</icon>
+</table>
+</database>
+
+<information>
+ <short>Chrome browser for Android</short>
+ <description>
+Each time a URL is visited, cookies placed and when they are used and URL
+suggestions that have been used.
+ </description>
+ <tested>
+  <device os="CynagenMod 10.1 (coldblue_) (Android 4.2.2)" device="Huawei U8800" />
+ </tested>
+ <extra>
+  <table id="visits" columns="from_visit"
+  reason="I think it points to the ID in this table, but that requires a
+  sub-query which is not supported, a query like: 'SELECT url FROM urls WHERE id
+  = (SELECT url FROM visits WHERE id = |result|)' will work" />
+  <table id="downloads" reason="Unknown format for all data" />
+ </extra>
+</information>
+</root>

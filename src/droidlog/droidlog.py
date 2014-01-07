@@ -25,7 +25,7 @@
 
 import re, os
 
-def getAllFilesReg(Dir, regexp="com.[a-zA-Z0-9\.]+.xml[\.0-9]*"):
+def getAllFilesReg(Dir, regexp="[a-z]+.[a-zA-Z0-9\.]+.xml[\.0-9]*"):
 	ret = []
 	dirFiles = os.listdir(Dir)
 	reg = re.compile(regexp)

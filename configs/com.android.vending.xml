@@ -3,8 +3,11 @@
 <table id="suggestions">
 <column id="title" override="Display">display1</column>
 <column id="start">date</column>
-<column id="description">query</column>
+<column id="description" override="App market query">query</column>
+<insert id="caption">Query for application in market</insert>
+<filter columns="query" static="search app market" />
 <where>date!=0</where>
+<icon desc="Searching for something">search.png</icon>
 </table>
 </database>
 
@@ -14,23 +17,30 @@
 <column id="start">delivery_data_timestamp_ms</column>
 <column id="description">package_name</column>
 <column id="description">account</column>
+<filter columns="title;package_name" static="app market" />
 <where>delivery_data_timestamp_ms!=0</where>
+<insert id="caption">When app was delivered</insert>
+<icon desc="Android applications">android_market.png</icon>
 </table>
 <table id="appstate">
 <column id="title">title</column>
 <column id="start">first_download_ms</column>
 <column id="description">package_name</column>
 <column id="description">account</column>
+<filter columns="title;package_name" static="app market" />
 <where>first_download_ms!=0</where>
 <insert id="caption">When app was first downloaded</insert>
+<icon desc="Android applications">android_market.png</icon>
 </table>
 <table id="appstate">
 <column id="title">title</column>
 <column id="start">last_update_timestamp_ms</column>
 <column id="description">package_name</column>
 <column id="description">account</column>
+<filter columns="title;package_name" static="app market" />
 <where>last_update_timestamp_ms!=0</where>
-<insert id="caption">When app was last modified</insert>
+<insert id="caption">When app state was last updated</insert>
+<icon desc="Android applications">android_market.png</icon>
 </table>
 </database>
 </root>

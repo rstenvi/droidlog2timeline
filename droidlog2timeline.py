@@ -49,6 +49,8 @@ createSymlinks = False
 # Root output directory
 output = ""
 
+fileOpened = {}
+
 # Calculate SHA-1 hash value of a file
 def sha1OfFile(filepath):
 	if verbose:
@@ -166,7 +168,7 @@ def readPackagesList(name, pathData):
 	if name == None or os.path.isfile(packages) == False:
 		if verbose:
 			print "Listing contents of " + str(pathData) + " to get programs"
-		ret = droidlog.getAllFilesReg(pathData, "com.[a-zA-Z0-9\.]+")
+		ret = droidlog.getAllFilesReg(pathData, "[a-z]+.[a-zA-Z0-9\.]+")
 	else:
 		if verbose:
 			print "Reading list of packages from " + name
@@ -178,21 +180,26 @@ def readPackagesList(name, pathData):
 
 # Checks if a regular expression matches against a file
 # firstPath contains everything up to and including com.xxx.yyy
-def replaceRegFile(firstPath, name, regStart):
+def replaceRegFile(firstPath, name, regStart, regEnd):
 	ret = ""
 	
 	# Generate regular expression
-	regEnd = name.find("}}")
 	regExp = name[regStart+2:regEnd]
+
+	# Should always match entire string
+	if regExp[len(regExp)-1] != '$':
+		regExp += "$"
 	dirRe = re.compile(regExp)
+	
+	findPath = firstPath
 	
 	# Find out additional path
 	extraPathI = name[:regStart].rfind("/")
 	if extraPathI != -1:
-		firstPath += name[:extraPathI+1]
+		findPath = os.path.join(firstPath, name[:extraPathI+1])
 	
 	# List all the files in this path
-	dirFiles = os.listdir(firstPath)
+	dirFiles = os.listdir(findPath)
 	
 	# Check if any of those files mathes our query
 	results = []
@@ -204,12 +211,66 @@ def replaceRegFile(firstPath, name, regStart):
 		ret = name[:regStart] + results[0] + name[regEnd+2:]
 	return ret
 
+def findAndReplaceReg(fullName, pathData, appName):
+	# Look for any regular expression in filename
+	regFind = fullName.find("{{")
+	# As long as there is regular expressions in the filename
+	while regFind != -1:
+		# If this is inside a double, we can't find the file
+		doubleFind = fullName.find("[[")
+		if doubleFind != -1 and doubleFind < regFind:
+			return fullName
+		regEnd = fullName.find("}}")
+		tmp = replaceRegFile(os.path.join(pathData, appName), fullName, regFind,\
+		regEnd)
+
+		# If it is not empty we found a match
+		if tmp != "":
+			fullName = tmp
+		else:
+			# No match is found, will fail later
+			break
+		# Try to find another regular expression
+		regFind = fullName.find("{{")
+	return fullName
+
+def findAndReplaceDouble(pathProgram, fullName, allNames, DB):
+	# Check if this consist of duplicate databases
+	doubleFind = fullName.find("[[")
+	if doubleFind != -1:
+		doubleFind2 = fullName.find("]]")
+		doubleName = fullName[doubleFind+2:doubleFind2]
+		names = doubleName.split(" and ")
+		for n in names:
+			n = n.strip()
+		for n in names:
+			# Need to check for regular expressions inside each name
+			if n.find("{{") == 0:
+				regEnd = n.find("}}")
+				n = replaceRegFile(os.path.join(pathProgram, fullName[:doubleFind]), n, 0, regEnd)
+				
+				if n == "":	# Nothing to find, got to next
+					continue
+			
+			DB1 = {"name" : fullName[:doubleFind] + n}
+			allNames.append(DB1["name"])
+			DB.append(DB1)
+	else:
+		allNames.append(fullName)
+	return allNames, DB
+
 # Read in configuration XML-file into a list of dictionaries
 # Will store any arbitrary attributes, interpreting them is not done here
-def readXML(name, imageDesc, pathData, useOverride, logPath):
+def readXML(name, imageDesc, pathData, disallowOverride, logPath):
 	ret = []
 	logFiles = {}
 	f = open(name, "r")
+	
+	# Find program directory
+	nameStart = name.rfind("/")
+	nameEnd = name.find(".xml")
+	appName = name[nameStart+1:nameEnd]
+	
 	tree = ET.parse(f)
 	root = tree.getroot()
 
@@ -217,41 +278,12 @@ def readXML(name, imageDesc, pathData, useOverride, logPath):
 		DB = []	# List of duplicate databases
 		allNames = []	# All database names that are duplicates
 		fullName = dbT.get("id")
+		
+		# Check for regular expressions
+		fullName = findAndReplaceReg(fullName, pathData, appName)
 
-		# Look for any regular expression in filename
-		regFind = fullName.find("{{")
-		# As long as there is regular expressions in the filename
-		while regFind != -1:
-			# Find program directory (com.xxx.yyy)
-			nameStart = name.rfind("/")
-			nameEnd = name.find(".xml")
-
-			tmp = replaceRegFile(pathData + name[nameStart:nameEnd] + "/",\
-			fullName, regFind)
-			
-			# If it is not empty we found a match
-			if tmp != "":
-				fullName = tmp
-			else:
-				# No match is found, will fail later
-				break
-			# Try to find another regular expression
-			regFind = fullName.find("{{")
-
-		# Check if this consist of duplicate databases
-		doubleFind = fullName.find("[[")
-		if doubleFind != -1:
-			doubleFind2 = fullName.find("]]")
-			doubleName = fullName[doubleFind+2:doubleFind2]
-			names = doubleName.split(" and ")
-			for n in names:
-				n = n.strip()
-			for n in names:
-				DB1 = {"name" : fullName[:doubleFind] + n}
-				allNames.append(DB1["name"])
-				DB.append(DB1)
-		else:
-			allNames.append(fullName)
+		# Check for duplicate databases
+		allNames, DB = findAndReplaceDouble(os.path.join(pathData, appName), fullName, allNames, DB)
 
 		tables = []
 		for elem in dbT.iter("table"):
@@ -268,16 +300,25 @@ def readXML(name, imageDesc, pathData, useOverride, logPath):
 					column["default"] = "None"
 					attrs = {}
 					for e in el.items():
-						if e[0] == "override" and useOverride == True:
+						if e[0] == "override" and disallowOverride == False:
 							column["print"] = e[1]
 						elif e[0] == "default":
 							column["default"] = e[1]
 						elif e[0] == "logfile" and (e[1] not in logFiles):
-							attrs["log"] = open(os.path.join(logPath, e[1]), "w")
+							if e[0] not in fileOpened.keys():
+								fileOpened[e[0]] = open(os.path.join(logPath, e[1]), "w")
+							attrs["log"] = fileOpened[e[0]]
+						elif e[0] == "query":
+							vals = e[1].split("|")
+							if len(vals) <= 1 or vals[0] == "key":
+								if len(vals) == 1:
+									vals.insert(0, "key")
+								queries.append(vals[1])
+							elif len(vals) > 2:
+								print "ERROR: " + str(e[1]) + " has too many dividers"
+							attrs["query"] = {"type" : vals[0], "query" : vals[1]}
 						else:
 							attrs[e[0]] = e[1]
-						if e[0] == "query":
-							queries.append(e[1])
 					column["attrs"] = attrs
 					columns.append(column)
 				elif el.tag == "icon":
@@ -354,6 +395,9 @@ def createMedia(path, xml):
 	error = False
 	ret = error
 	images = ["jpg", "png", "jpeg"]
+	videos = ["mp4", "flv"]
+	audios = ["mp3", "ogg", "3gpp"]
+	Type = None
 
 	# Should be full path
 	if path[0] != "/":
@@ -363,30 +407,71 @@ def createMedia(path, xml):
 	
 	# Only matches file ending now, magic numbers would be more accurate
 	endingI = path.rfind(".")
+	# Return error if there is no ending
 	if endingI == -1:
 		return error
-	if path[endingI+1:] in images:
-		firstDirI = path.find("/")
-		if firstDirI == -1:
-			return error
-		firstDir = path[:firstDirI]
-		prefix = findDir(storagePaths, firstDir)
-		if prefix == None:
-			return error
-		fullPath = os.path.join(prefix, path)
-		imageNameI = fullPath.rfind("/")
-		imageName = fullPath[imageNameI+1:]
-		imagePath = os.path.join(output, "images")
-		if not os.path.exists(imagePath):
-			os.mkdir(imagePath)
-		imagePath = os.path.join(imagePath, imageName)
-		if createSymlinks == True:
-			if not os.path.exists(imagePath):
-				os.symlink(fullPath, imagePath)
-		else:
-			shutil.copy2(fullPath, imagePath)
-		xml.set("image", os.path.join("images", imageName))
-		ret = True
+	ending = path[endingI+1:].lower()
+	
+	if ending in images:
+		Type = "image"
+	elif ending in videos:
+		Type = "video"
+	elif ending in audios:
+		Type = "audio"
+	else:
+		return error	# File type not supported
+
+	# Get the name of the first directory
+	firstDirI = path.find("/")
+	if firstDirI == -1:
+		return error
+	firstDir = path[:firstDirI]
+
+	# Find if we have this directory in any of our paths
+	prefix = findDir(storagePaths, firstDir)
+	if prefix == None:
+		return error
+	
+	# Crate full path to file
+	fullPath = os.path.join(prefix, path)
+
+	# Find the name of the file
+	mediaNameI = fullPath.rfind("/")
+	mediaName = fullPath[mediaNameI+1:]
+
+	# The path for the web server
+	mediaPath = os.path.join(output, Type + "s")
+	
+	# Create directory if it doesn't exist
+	if not os.path.exists(mediaPath):
+		os.mkdir(mediaPath)
+
+	# Full path to file
+	mediaPath = os.path.join(mediaPath, mediaName)
+
+	# Create the file for the web server, use symlink if chosen
+	if createSymlinks == True:
+		if not os.path.exists(mediaPath):
+			os.symlink(fullPath, mediaPath)
+	elif not os.path.exists(mediaPath):
+		shutil.copy2(fullPath, mediaPath)
+
+	Tag = ""
+
+	if Type == "image":
+		Tag = "<img src='" + os.path.join(Type + "s", mediaName) + "' />"
+	elif Type == "audio" or Type == "video":
+		localPath = os.path.join(Type + "s", mediaName)
+		TypeIns = Type + "/" + ending
+		Tag = "<" + Type + " controls type='" + TypeIns + "' src='" + localPath +\
+		"'>Your browser does not support the " + Type + " tag.</" + Type + ">"
+	
+	bef = xml.text
+	if bef == None:
+		bef = ""
+	bef +=  Tag.encode('ascii', 'xmlcharrefreplace')
+	xml.text = bef
+	ret = True
 	return ret
 
 # Uses the configuration XML-file and the source database to create new XML-file
@@ -420,12 +505,13 @@ unallocated):
 				if db:	db.close()
 				return False
 			for c in t["columns"]:
-				if "query" in c["attrs"] and c["attrs"]["query"] == q:
+				if "query" in c["attrs"] and c["attrs"]["query"]["query"] == q\
+				and c["attrs"]["query"]["type"] == "key":
 					# TODO:
 					# - Is a little strict on what it accepts, should be able to
 					# handle redundant spaces
 					# Decompose the query to find the key and value
-					tmp = c["attrs"]["query"]
+					tmp = c["attrs"]["query"]["query"]
 					first = tmp.find(" ")
 					second = tmp.find(",")
 					firstV = tmp[first+1:second]
@@ -450,7 +536,7 @@ unallocated):
 				event.set(i["id"], i["name"])
 			for c in t["columns"]:
 				ins = ""
-				if q[c["name"]] == None:
+				if q[c["name"]] == None or q[c["name"]] == "":
 					ins = c["default"]
 				elif "type" in c["attrs"]:
 					types = c["attrs"]["type"].split(";")
@@ -485,15 +571,38 @@ unallocated):
 
 				# Separate case where we need to get the result from a different DB
 				# The queries have been done already, just need to find it
-				if "query" in c["attrs"] and "queryResult" in c:
-					for res in c["queryResult"]["result"]:
-						if q[c["name"]] == res[c["queryResult"]["key"]]:
-							ins = str(res[c["queryResult"]["value"]])
-							break
+				if "query" in c["attrs"]:
+					if c["attrs"]["query"]["type"] == "key" and "queryResult" in c:
+						for res in c["queryResult"]["result"]:
+							if q[c["name"]] == res[c["queryResult"]["key"]]:
+								ins =res[c["queryResult"]["value"]]
+								if type(ins) == unicode:
+									ins = removeInvalid(res[c["queryResult"]["value"]])
+								break
+					elif c["attrs"]["query"]["type"] == "direct":
+						run = c["attrs"]["query"]["query"]
+						if run.find("?") == -1:
+							print "ERROR: A direct query need to have '?' to be replaces"
+							sys.exit(0)
+						run = run.replace("?", ins)
+
+						res, succ = execQuery(db, run)
+						if succ == False:
+							if db:	db.close()
+							return False
+						ins = ""
+						if len(res) == 0:
+							ins = c["default"]
+						for r in res:
+							ins += "<br />"
+							for k in r.keys():
+								ins += "<i>" + k + "</i>: " + removeInvalid(r[k]) +\
+								"<br />"
+
 				
 				# Add to filter if this column is specified with it
 				if "filter" in c["attrs"] and c["attrs"]["filter"] == True:
-					Filter += str(ins)
+					Filter += removeInvalid(ins)
 				
 				if "append" in c["attrs"]:
 					ins += " " + c["attrs"]["append"]
@@ -546,6 +655,8 @@ unallocated):
 	return True
 
 def removeInvalid(chunk):
+	if type(chunk) == int or type(chunk) == float or type(chunk) == long:
+		return str(chunk)
 	chunk = ' '.join(chunk .split())
 	return ''.join([ch for ch in chunk if ord(ch) > 31 or ord(ch) ==9])
 
@@ -677,8 +788,7 @@ if __name__== '__main__':
 
 	# Root paths for gathering media
 	parser.add_argument('-r', '--root-paths', dest='roots', nargs='+', default=[],\
-	help='Root paths for various mount points, must be full path and must have'
-	+ ' the same structure as on the device')
+	help='Root paths for various mount points')
 
 	# Get program directory
 	thisPath = os.path.dirname(os.path.realpath(__file__))
@@ -692,6 +802,11 @@ if __name__== '__main__':
 	createSymlinks = args["symlinks"]
 
 	storagePaths = args["roots"]
+
+	# Transform them all to full paths, needed for symlinks
+	for i in range(0, len(storagePaths)):
+		if os.path.isabs(storagePaths[i]) == False:
+			storagePaths[i] = os.path.join(workPath, storagePaths[i])
 
 	Carve = args["carve"]
 	if Carve:

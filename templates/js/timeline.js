@@ -3,8 +3,8 @@ function onLoad() {
 	var eventSource = new Timeline.DefaultEventSource();
 
 	var theme = Timeline.ClassicTheme.create();
-	theme.event.bubble.width = 350;
-	theme.event.bubble.height = 300;
+	theme.event.bubble.width = 400;
+	theme.event.bubble.height = 400;
 	theme.event.track.height = 15;
 	theme.event.tape.height = 8;
 	var bandInfos = [
@@ -13,7 +13,8 @@ function onLoad() {
 			width:          "70%",
 			intervalUnit:   interval1,
 			timeZone: timeZone,
-			intervalPixels: 100
+			intervalPixels: 100,
+			theme: theme
 		}),
 		Timeline.createBandInfo({
 			overview:       true,
@@ -21,6 +22,7 @@ function onLoad() {
 			width:          "10%",
 			intervalUnit:   interval2,
 			timeZone: timeZone,
+			theme: theme,
 			intervalPixels: 200
 		}),
 		Timeline.createBandInfo({

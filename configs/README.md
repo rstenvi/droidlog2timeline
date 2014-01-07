@@ -64,11 +64,18 @@ attributes for the column tag.
   in the database. To make analysis easier, this can be overridden here. Format
   is override="text".
 - default: Text to show when there is no result. Default is "None".
-- query: Same idea as type, only it is meant to be used on foreign keys and get
-  the value that this key represent. An example is
-  query="SELECT key,value FROM table". The key is what is returned from the
-  original query, the value is the column in the new table which we will replace
-  the key with. Both key and value are columns in the new table.
+- query: Same idea as type, only it can run a new query. There are two types of
+  queries, "key" and "direct":
+  - key: Default option and is meant to retrieve a value based on primary key
+	 and foreign key. Used like this: query="SELECT key,value FROM table" "key"
+	 is the value we are filtering with, probably primary key in table you are
+	 gathering data from and value is what we replace the result with.
+  - direct: Direct queries have the format: "direct|SELECT val1,val2 FROM table WHERE
+	 id = ?". "direct|" just specifies what type of query this is, you can also
+	 specify "key|" for the default option. The question mark will be replaced
+	 with the result and all the columns and results from the query will be
+	 included. This has to be executed for each event, so it will take longer
+	 time than "key". The "key" query will only be executed once.
 - filetype: Determines what type of data is stored in that column, the following
   values are supported:
   - json: Must be accompanied with with select="key1;key2;..;"
@@ -98,9 +105,11 @@ Formatting information
   as the information the xml file gathers, the "and" keyword can be used. The
   filenames must be enclosed in "[[" and "]]" and each file must be separated by
   " and ". This should be used the same way as regular expression, inside one
-  directory. It can only be used once and not inside regular expression. Media
-  files is an example where this is used, internal and external storage have
-  similar databases and the same XML-config can be used for both.
+  directory. It can only be used once and not inside or before regular
+  expression, but each name separated by " and " can contain a regular
+  expression. Media files is an example where this is used, internal and
+  external storage have similar databases and the same XML-config can be used
+  for both.
 
 Information about file
 ----------------------

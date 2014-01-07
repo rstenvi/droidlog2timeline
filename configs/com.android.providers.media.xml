@@ -4,7 +4,7 @@ As far as I can tell, Android 4.4 uses databases as path while lower uses db
 external.db and internal.db are duplicates for everything that we care about,
 the "and" keyword enclosed in "[[...]]" will make sure that both are used
 -->
-<database id="{{db|databases}}/[[external.db and internal.db]]">
+<database id="{{db|databases}}/[[{{external[\-0-9a-fA-F]*.db}} and internal.db]]">
 <!-- date modified -->
 <table id="files">
 <column id="title">title</column>
@@ -18,8 +18,8 @@ the "and" keyword enclosed in "[[...]]" will make sure that both are used
 <column id="description">latitude</column>
 <column id="description">longitude</column>
 <icon desc="Media files">media.png</icon>
-<where>date_modified!=0 and _size > 0</where>
-<insert id="caption">Modification of external files</insert>
+<where>date_modified!=0 and _size > 0 and mime_type != "None"</where>
+<insert id="caption">Modification of file</insert>
 <filter columns="title;bucket_display_name;mime_type" static="media" />
 </table>
 
@@ -36,7 +36,7 @@ the "and" keyword enclosed in "[[...]]" will make sure that both are used
 <column id="description">latitude</column>
 <column id="description">longitude</column>
 <icon desc="Media files">media.png</icon>
-<where>date_added!=0 and _size > 0</where>
+<where>date_added!=0 and _size > 0 and mime_type != "None"</where>
 <insert id="caption">The first time the file was added</insert>
 <filter columns="title;bucket_display_name;mime_type" static="media" />
 </table>
@@ -54,7 +54,7 @@ the "and" keyword enclosed in "[[...]]" will make sure that both are used
 <column id="description">latitude</column>
 <column id="description">longitude</column>
 <icon desc="Media files">media.png</icon>
-<where>datetaken!=0 and _size > 0</where>
+<where>datetaken!=0 and _size > 0 and mime_type != "None"</where>
 <insert id="caption">Date the media was taken</insert>
 <filter columns="title;bucket_display_name;mime_type" static="media" />
 </table>
