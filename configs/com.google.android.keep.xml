@@ -1,0 +1,11 @@
+<root>
+<database id="databases/keep.db">
+<table id="tree_entity">
+<column id="title" override="Title">title</column>
+<column id="start">time_created</column>
+<column id="description" override="Contents" query="direct|SELECT text FROM text_search_list_items WHERE list_parent_id = ?">_id</column>
+<filter static="notes" columns="title"/>
+<icon desc="Notes">notes.png</icon>
+</table>
+</database>
+</root>

@@ -76,11 +76,10 @@ suggestions that have been used.
   <device os="CynagenMod 10.1 (coldblue_) (Android 4.2.2)" device="Huawei U8800" />
  </tested>
  <extra>
-  <table id="visits" columns="from_visit"
-  reason="I think it points to the ID in this table, but that requires a
-  sub-query which is not supported, a query like: 'SELECT url FROM urls WHERE id
-  = (SELECT url FROM visits WHERE id = |result|)' will work" />
+  <table id="Databases" database="databases/Database.db" columns="origin"
+  reason="Pointer to extra databases used by web applications" />
   <table id="downloads" reason="Unknown format for all data" />
+  <table id="logins" database="Login Data" reason="Unknown format for all data" />
  </extra>
 </information>
 </root>

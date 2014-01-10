@@ -11,6 +11,7 @@
 <column id="description">sync_events</column>
 <where>_sync_time!=0</where>
 <insert id="caption">When event was synced with account</insert>
+<filter static="calendar" columns="_sync_account;displayName" />
 </table>
 <table id="Events">
 <column id="title" override="Event title">title</column>
@@ -20,6 +21,7 @@
 <column id="description" override="Account type">_sync_account_type</column>
 <column id="description">description</column>
 <insert id="caption">Planned events in calendar (user defined timestamps)</insert>
+<filter static="calendar events" columns="title;_sync_account" />
 </table>
 </database>
 </root>

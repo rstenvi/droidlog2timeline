@@ -596,8 +596,7 @@ unallocated):
 						for r in res:
 							ins += "<br />"
 							for k in r.keys():
-								ins += "<i>" + k + "</i>: " + removeInvalid(r[k]) +\
-								"<br />"
+								ins += "<i>" + k + "</i>: " + removeInvalid(r[k])
 
 				
 				# Add to filter if this column is specified with it
@@ -630,7 +629,7 @@ unallocated):
 										subtract = 11644473600
 								if "divide" in c["attrs"]:
 									divide = int(c["attrs"]["divide"])
-								val = int( ( (long(q[c["name"]])/divide) - subtract) )
+								val = int( ( (long(ins)/divide) - subtract) )
 								if c["attrs"]["id"] == "start":
 									dateT = int(math.floor(val))
 								ins = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(val+skew))
