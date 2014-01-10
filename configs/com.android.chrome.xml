@@ -60,9 +60,9 @@ override="From site">from_visit</column>
 <column id="start" epoch="windows" divide="1000000">last_access_time</column>
 <column id="description">url</column>
 <column id="description" override="Typed in">text</column>
+<icon desc="Visiting a web page">web.png</icon>
 <insert id="caption">Selected suggestion based on text typed in url</insert>
 <filter columns="contents;url" static="web suggestion" />
-<icon desc="Visiting a web page">web.png</icon>
 </table>
 </database>
 

@@ -8,10 +8,10 @@
 <column id="description" override="Mime type">rd_mime_type</column>
 <column id="description" override="Size">rd_size</column>
 <column id="description" override="Description">rd_description</column>
+<icon desc="Document handling">document.png</icon>
 <where>rd_created != "None"</where>
 <insert id="caption">When document was created</insert>
 <filter static="document" columns="rd_name;rd_mime_type" />
-<icon desc="Document handling">document.png</icon>
 </table>
 
 <table id="recent_files">
@@ -21,10 +21,10 @@
 <column id="description" override="Mime type">rd_mime_type</column>
 <column id="description" override="Size">rd_size</column>
 <column id="description" override="Description">rd_description</column>
+<icon desc="Document handling">document.png</icon>
 <where>rd_modified != "None"</where>
 <insert id="caption">When document was last modified</insert>
 <filter static="document" columns="rd_name;rd_mime_type" />
-<icon desc="Document handling">document.png</icon>
 </table>
 
 <table id="recent_files">
@@ -34,10 +34,10 @@
 <column id="description" override="Mime type">rd_mime_type</column>
 <column id="description" override="Size">rd_size</column>
 <column id="description" override="Description">rd_description</column>
+<icon desc="Document handling">document.png</icon>
 <where>rd_last_opened != "None"</where>
 <insert id="caption">When document was last opened</insert>
 <filter static="document" columns="rd_name;rd_mime_type" />
-<icon desc="Document handling">document.png</icon>
 </table>
 
 </database>

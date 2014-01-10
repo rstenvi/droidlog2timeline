@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:element name="root">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element maxOccurs="unbounded" ref="database"/>
+        <xs:element ref="information" minOccurs="0" maxOccurs="1"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="database">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element maxOccurs="unbounded" ref="table"/>
+      </xs:sequence>
+      <xs:attribute name="id" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="information">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="short" minOccurs="0" maxOccurs="1" />
+        <xs:element ref="description" minOccurs="0" maxOccurs="1" />
+        <xs:element ref="tested" minOccurs="0" maxOccurs="1" />
+        <xs:element ref="extra" minOccurs="0" maxOccurs="1" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="short" type="xs:string"/>
+  <xs:element name="description" type="xs:string"/>
+  <xs:element name="tested">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="device" minOccurs="1" maxOccurs="unbounded" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="device">
+    <xs:complexType>
+      <xs:attribute name="device" use="optional"/>
+      <xs:attribute name="os" use="optional"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="extra">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element maxOccurs="unbounded" ref="table"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="table">
+    <xs:complexType>
+      <xs:sequence minOccurs="0">
+        <xs:element maxOccurs="unbounded" ref="column"/>
+        <xs:element ref="icon" minOccurs="0" maxOccurs="1" />
+        <xs:element name="where" type="xs:string" minOccurs="0" maxOccurs="1" />
+        <xs:element ref="insert" minOccurs="0" maxOccurs="unbounded" />
+        <xs:element ref="filter" minOccurs="0" maxOccurs="1" />
+      </xs:sequence>
+      <xs:attribute name="columns" type="xs:string"/>
+      <xs:attribute name="database"/>
+      <xs:attribute name="id" use="required" type="xs:string"/>
+      <xs:attribute name="reason"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="column">
+    <xs:complexType>
+      <xs:simpleContent>
+        <xs:extension base="xs:NCName">
+          <xs:attribute name="append"/>
+          <xs:attribute name="default"/>
+          <xs:attribute name="divide" type="xs:integer"/>
+          <xs:attribute name="epoch" type="xs:string"/>
+          <xs:attribute name="id" use="required" type="xs:string"/>
+          <xs:attribute name="logfile" type="xs:string"/>
+          <xs:attribute name="override"/>
+          <xs:attribute name="query"/>
+          <xs:attribute name="type"/>
+          <xs:attribute name="filetype"/>
+          <xs:attribute name="select"/>
+        </xs:extension>
+      </xs:simpleContent>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="filter">
+    <xs:complexType>
+      <xs:attribute name="columns" use="optional"/>
+      <xs:attribute name="static" use="optional"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="icon">
+    <xs:complexType>
+      <xs:simpleContent>
+        <xs:extension base="xs:NCName">
+          <xs:attribute name="desc" use="required"/>
+        </xs:extension>
+      </xs:simpleContent>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="insert">
+    <xs:complexType mixed="true">
+      <xs:attribute name="id" use="required" type="xs:NCName"/>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

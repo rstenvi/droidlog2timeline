@@ -11,12 +11,12 @@
 
 <information>
  <short>Suggest contacts based on initial input</short>
- <tested>
-  <device os="Android 4.4" device="emulator"/>
- </tested>
  <description>
 Shows when a contact was last selected. Should come right before another
 connection mechanism to another person, like call or SMS.
  </description>
+ <tested>
+  <device os="Android 4.4" device="emulator"/>
+ </tested>
 </information>
 </root>
