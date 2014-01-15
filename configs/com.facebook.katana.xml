@@ -5,8 +5,10 @@
 <column id="start">timestamp_ms</column>
 <column id="description">text</column>
 
-<column id="description" filetype="json" select="email;user_key;name;">sender</column>
-<column id="description" filetype="json" select="latitude;longitude;">coordinates</column>
+<column id="description" filetype="json"
+select="email;user_key AS User key;name;">sender</column>
+<column id="description" filetype="json" store="true"
+select="latitude;longitude;">coordinates</column>
 <column id="description">source</column>
 <column id="description">publicity</column>
 

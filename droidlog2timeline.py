@@ -30,7 +30,7 @@ import argparse
 from datetime import datetime
 import math
 import shutil	# To copy files
-import hashlib, json, pprint
+import hashlib, json
 
 try:
 	from lxml import etree as ET
@@ -46,10 +46,19 @@ storagePaths = []	# Root storage mount points
 # If we can create symlinks or not, only possible on UNIX
 createSymlinks = False
 
+# Global status description for error messages
+globalStatus = ""
+
 # Root output directory
 output = ""
 
+# All opened files that are used when printing logs
 fileOpened = {}
+
+# Print error message and exit
+def exitError(msg):
+	print "ERROR: Message: " + str(msg) + " Status: "
+	sys.exit(0)
 
 # Calculate SHA-1 hash value of a file
 def sha1OfFile(filepath):
@@ -59,12 +68,13 @@ def sha1OfFile(filepath):
 		return hashlib.sha1(f.read()).hexdigest()
 
 
-def getJsonKeys(keys, Json):
+# Get a dictionary representing the JSON input, keys are defined in keyWrite
+def getJsonKeys(keys, keyWrite, Json):
 	Dict = json.loads(Json)
 	ret = {}
-	for key in keys:
+	for key, keyW in zip(keys, keyWrite):
 		if key in Dict:
-			ret[key] = Dict[key]
+			ret[keyW] = Dict[key]
 	return ret
 
 
@@ -132,7 +142,13 @@ def printLinks(webapp):
 	for f in files:
 		if (os.path.isdir(os.path.join(webapp, f))) and (f not in ignore):
 			links.append(f)
-	File = open(os.path.join(webapp, "links.js"), "w")
+	
+	try:
+		File = open(os.path.join(webapp, "links.js"), "w")
+	except IOError as e:
+		print "I/O error({0}): {1}".format(e.errno, e.strerror)
+		sys.exit(0)
+	
 	File.write("var Links = new Array();\n")
 	for l in links:
 		File.write("Links.push('" + os.path.join(l, "index.html") + "');\n")
@@ -141,7 +157,12 @@ def printLinks(webapp):
 def printVariables(fname, images, intervals, timezone=0):
 	if verbose:
 		print "Writing JavaScript variables"
-	f = open(fname, "w")
+	try:
+		f = open(fname, "w")
+	except IOError as e:
+		print "I/O error({0}): {1}".format(e.errno, e.strerror)
+		sys.exit(0)
+	
 	f.write("var timeZone=" + str(timezone) + ";\n")
 	f.write("var interval1=Timeline.DateTime." + intervals[0] + ";\n")
 	f.write("var interval2=Timeline.DateTime." + intervals[1] + ";\n")
@@ -211,6 +232,8 @@ def replaceRegFile(firstPath, name, regStart, regEnd):
 		ret = name[:regStart] + results[0] + name[regEnd+2:]
 	return ret
 
+
+# Finds regular expression in paths and checks to see what to replace it with
 def findAndReplaceReg(fullName, pathData, appName):
 	# Look for any regular expression in filename
 	regFind = fullName.find("{{")
@@ -234,6 +257,8 @@ def findAndReplaceReg(fullName, pathData, appName):
 		regFind = fullName.find("{{")
 	return fullName
 
+# Checks if the same script goes for several databases. If it does it adds them
+# to our list
 def findAndReplaceDouble(pathProgram, fullName, allNames, DB):
 	# Check if this consist of duplicate databases
 	doubleFind = fullName.find("[[")
@@ -263,71 +288,107 @@ def findAndReplaceDouble(pathProgram, fullName, allNames, DB):
 # Will store any arbitrary attributes, interpreting them is not done here
 def readXML(name, imageDesc, pathData, disallowOverride, logPath):
 	ret = []
-	logFiles = {}
-	f = open(name, "r")
+	try:
+		f = open(name, "r")
+	except IOError as e:
+		print "I/O error({0}): {1}".format(e.errno, e.strerror)
+		sys.exit(0)
 	
 	# Find program directory
 	nameStart = name.rfind("/")
 	nameEnd = name.find(".xml")
 	appName = name[nameStart+1:nameEnd]
 	
+	# Get root of our file
 	tree = ET.parse(f)
 	root = tree.getroot()
 
+	# For each database
 	for dbT in root.iter("database"):
 		DB = []	# List of duplicate databases
 		allNames = []	# All database names that are duplicates
-		fullName = dbT.get("id")
+		fullName = dbT.get("id")	# Path to DB
 		
-		# Check for regular expressions
+		# Check for regular expressions in DB path
 		fullName = findAndReplaceReg(fullName, pathData, appName)
 
 		# Check for duplicate databases
 		allNames, DB = findAndReplaceDouble(os.path.join(pathData, appName), fullName, allNames, DB)
 
-		tables = []
+		tables = []	# All tables in this database
 		for elem in dbT.iter("table"):
 			table = {}
 			table["name"] = elem.get("id")
-			columns = []
-			inserts = []
-			queries = []
+
+			# Set status in case of error
+			globalStatus = "Reading XML file: " + name + " DB: " + fullName + " Table: " + table["name"]
+
+			columns = []	# All columns
+			inserts = []	# Static text inserted in attribute
+			queries = []	# Queries to replace foreign key
 			for el in elem.iterchildren():
 				if el.tag == "column":
 					column = {}
-					column["name"] = el.text
-					column["print"] = el.text
-					column["default"] = "None"
+
+					# Set some default values
+					column["name"] = el.text	# Column name in DB
+					column["print"] = el.text	# What we should say column is called
+					column["default"] = "None"	# When column is empty
+
+					# Various attributes that belong to the column. Some are
+					# interpreted here, if they are not mentioned here they are
+					# parsed when running the queries against the DB.
 					attrs = {}
 					for e in el.items():
+						# Use self-define header for column value
 						if e[0] == "override" and disallowOverride == False:
 							column["print"] = e[1]
+
+						# Specify default value to use when not found
 						elif e[0] == "default":
 							column["default"] = e[1]
-						elif e[0] == "logfile" and (e[1] not in logFiles):
-							if e[0] not in fileOpened.keys():
-								fileOpened[e[0]] = open(os.path.join(logPath, e[1]), "w")
-							attrs["log"] = fileOpened[e[0]]
+
+						# Several XML files can specify the same logfile, so we store
+						# them in a global dictionary and places the link the column
+						# attributes
+						elif e[0] == "logfile":
+							if e[1] not in fileOpened.keys():
+								try:
+									fileOpened[e[1]] = open(os.path.join(logPath, e[1]), "w")
+								except IOError as e:
+									print "I/O error({0}): {1}".format(e.errno, e.strerror)
+									sys.exit(0)
+							attrs["log"] = fileOpened[e[1]]
+
+						# Queries that has to be executes
 						elif e[0] == "query":
 							vals = e[1].split("|")
+							# "key" is default value, is meant to replace foreign key
 							if len(vals) <= 1 or vals[0] == "key":
 								if len(vals) == 1:
 									vals.insert(0, "key")
 								queries.append(vals[1])
 							elif len(vals) > 2:
-								print "ERROR: " + str(e[1]) + " has too many dividers"
+								exitError(str(e[1]) + " has too many dividers")
 							attrs["query"] = {"type" : vals[0], "query" : vals[1]}
+						# Add other stuff we don't need to parse here
 						else:
 							attrs[e[0]] = e[1]
+
 					column["attrs"] = attrs
 					columns.append(column)
+
+				# Can only be 1 icon tag
 				elif el.tag == "icon":
 					icon = {"file" : "../images/" + el.text, "description" :\
 					el.get("desc")}
 					table["icon"] = icon
 					imageDesc.append(icon)
+
+				# Can only be 1 where tag
 				elif el.tag == "where":
 					table["where"] = el.text
+
 				elif el.tag == "insert":
 					insert = {"name" : el.text, "id" : el.get("id")}
 					inserts.append(insert)
@@ -335,7 +396,7 @@ def readXML(name, imageDesc, pathData, disallowOverride, logPath):
 				# Can only be one filter tag so we add it directly
 				elif el.tag == "filter":
 					table["filter"] = {}
-					tabID = el.get("columns")
+					tabID = el.get("columns", None)
 					if tabID != None:
 						cols = tabID.split(";")
 						table["filter"]["columns"] = cols
@@ -380,7 +441,7 @@ def execQuery(db, query, Log=None):
 		if Log != None:
 			Log.append(query)
 	except sqlite.Error, e:
-		print "Error %s:" % e.args[0]
+		print "WARNING:  %s: Query: " % e.args[0], query
 		retValue = False
 	return ret, retValue
 
@@ -471,8 +532,111 @@ def createMedia(path, xml):
 		bef = ""
 	bef +=  Tag.encode('ascii', 'xmlcharrefreplace')
 	xml.text = bef
-	ret = True
+	return True
+
+# Find the value of a query we did earlier
+def getQueryCompleted(query, column):
+	ret = "Unknown"
+	for res in column.get("queryResult", {}).get("result", {}):
+		if query.get(column.get("name", ""), "invalid") == \
+		res.get(column["queryResult"].get("key", ""), "ivalid2"):
+			ret = removeInvalid(res.get(column["queryResult"].get("value", ""), "Unknown"))
+			break
 	return ret
+
+
+# Run a new query to replace the appropriate value
+def getQueryNew(db, column, insert, dbName):
+	# Get the base query
+	run = column["attrs"]["query"].get("query", "Missing column")
+
+	# Exit if there is nothing to replace
+	if run.find("?") == -1:
+		exitError("Invalid query :'" + run + "'")
+
+	# Replace the '?' with the user previous result
+	run = run.replace("?", insert)
+
+	# Execute the query
+	res, succ = execQuery(db, run)
+	if succ == False:
+		if db:	db.close()
+		exitError("Unable to connect to '" + str(dbName) + "'")
+
+	# Use default value if we can't find a value
+	if len(res) == 0:		return column["default"]
+
+	# Might be multiple results, we add all and separate by newline in html
+	ret = ""
+	for r in res:
+		ret += "<br />"
+		for k in r.keys():
+			ret += "<i>" + k + "</i>: " + removeInvalid(r[k])
+	return ret
+
+# Convert JSON to a string based on the columns selected
+def getFileTypeJson(column, query, localStorage):
+	ret = "Error"
+	# Get all different JSON keys that should be selected
+	Keys = column["attrs"]["select"].split(";")
+
+	KeyGet = []		# The actual key
+	KeyWrite = []	# What we write
+
+	for key in Keys:
+		# If new name is specified
+		tmp = key.split(" AS ")
+
+		# If new name is not specified, we add one equal to default name
+		if len(tmp) == 1:	tmp.append(tmp[0])
+
+		# Ignore empty
+		if len(tmp[0]) == 0:	continue
+
+		# Append keys
+		KeyGet.append(tmp[0])
+		KeyWrite.append(tmp[1])
+
+	# Get a dictionary with our self-defined keys
+	Dict = getJsonKeys(KeyGet, KeyWrite, query[column["name"]])
+
+	for key in Dict:
+		ret += "<br /><i>" + str(key) + ": </i>" + str(Dict[key])
+		if "store" in column["attrs"] and column["attrs"]["store"].lower() != "false":
+			localStorage[key] = str(Dict[key])
+	return ret, localStorage
+
+# Executes a set of predefined queries to retrieve value for foreign keys
+def runSetQueries(table, db, dbName, Queries):
+	for q in table["queries"]:
+		qq, succ = execQuery(db, q, Queries)
+		if succ == False:
+			if db:	db.close()
+			exitError("Could not connect to DB '" + dbName + "'")
+
+		for c in table["columns"]:
+			if "query" in c["attrs"] and c["attrs"]["query"]["query"] == q\
+			and c["attrs"]["query"]["type"] == "key":
+
+				# TODO:
+				# - Is a little strict on what it accepts, should be able to
+				# handle redundant spaces
+				# Decompose the query to find the key and value
+				tmp = c["attrs"]["query"]["query"]
+				first = tmp.find(" ")
+				second = tmp.find(",")
+				firstV = tmp[first+1:second]
+
+				while tmp[second+1] == " ":	second += 1
+				tmp = tmp[second+1:]
+				first = tmp.find(" ")
+				secondV = tmp[:first]
+
+				# Create 1 result that holds the entire result and which field
+				# is the key and which field is the value
+				c["queryResult"] = {"key" : firstV, "value" : secondV, "result" :
+				qq}
+	return table
 
 # Uses the configuration XML-file and the source database to create new XML-file
 # that is input to the timeline
@@ -491,154 +655,179 @@ unallocated):
 			for row in unallocated[t["name"]]:
 				query.append(row)
 
-		# Exit if we fail
+		# Return if we fail, might just be wrong XML file, so should not exit
 		if succ == False:
 			if db:	db.close()
 			return False
 
-
 		# We run all the XML-defined queries beforehand to avoid having to run
 		# them for every field value
-		for q in t["queries"]:
-			qq, succ = execQuery(db, q, Queries)
-			if succ == False:
-				if db:	db.close()
-				return False
-			for c in t["columns"]:
-				if "query" in c["attrs"] and c["attrs"]["query"]["query"] == q\
-				and c["attrs"]["query"]["type"] == "key":
-					# TODO:
-					# - Is a little strict on what it accepts, should be able to
-					# handle redundant spaces
-					# Decompose the query to find the key and value
-					tmp = c["attrs"]["query"]["query"]
-					first = tmp.find(" ")
-					second = tmp.find(",")
-					firstV = tmp[first+1:second]
-					while tmp[second+1] == " ":
-						second += 1
-					tmp = tmp[second+1:]
-					first = tmp.find(" ")
-					secondV = tmp[:first]
+		t = runSetQueries(t, db, dbName, Queries)
 
-					# Create 1 result that holds the entire result and which field
-					# is the key and which field is the value
-					c["queryResult"] = {"key" : firstV, "value" : secondV, "result" :
-					qq}
-		for q in query:	# For each result
+		# Defines 1 event
+		for q in query:
+			event = ET.Element("event")
+			localStorage = {}
+			
+			# Get static filter that should be used for this event
 			Filter = ""
 			if "filter" in t:	Filter = t["filter"].get("static", "")
-			event = ET.Element("event")
+
+			# Get the icon that should be displayed, default is blue dot
 			if "icon" in t:
 				if "file" in t["icon"]:
 					event.set("icon", t["icon"]["file"])
-			for i in t["inserts"]:
-				event.set(i["id"], i["name"])
+
+			# Insert attributes that have been specified
+			for i in t["inserts"]:	event.set(i["id"], i["name"])
+
+			# Go through all the columns and add attributes
 			for c in t["columns"]:
-				ins = ""
+				ins = ""	# The value that is inserted into the XML attribute
+
+				# q[c["name"]] holds the result for this columns and is not subject
+				# to change, which "ins" is.
+
+				# Set default value if we are unable find a real value
 				if q[c["name"]] == None or q[c["name"]] == "":
 					ins = c["default"]
+
+				# Type specifies values that should be replaced, usually integers
+				# that are replaced by hardcoded strings. We also add the real value
+				# in parentheses.
 				elif "type" in c["attrs"]:
 					types = c["attrs"]["type"].split(";")
 					for ty in types:
-						if ty != "" and int(ty.split(":")[0]) == q[c["name"]]:
+						if ty != "" and str(ty.split(":")[0]) == str(q[c["name"]]):
 							ins = ty.split(":")[1] + " (" + str(q[c["name"]]) + ")"
 							break
-					# Fallback if it's unknown, print the integer
+					# Fallback if it's unknown, print the real value
 					if ins == "":
 						ins = str(q[c["name"]])
+
+				# Column should not be interpreted as simple text
 				elif "filetype" in c["attrs"]:
 					Type = c["attrs"]["filetype"]
+
+					# Field is JSON
 					if Type == "json" and "select" in c["attrs"]:
-						Dict = getJsonKeys(c["attrs"]["select"].split(";"), q[c["name"]])
-						ins = ""
-						for key in Dict:
-							ins += "<br /><i>" + str(key) + ": </i>" + str(Dict[key])
+						ins, localStorage = getFileTypeJson(c, q, localStorage)
+
+					# Field is path, print as usual, but also option to include media
 					elif Type == "path":
-						ins = q[c["name"]]
+						ins = str(q[c["name"]])
 						createMedia(ins, event)
+
+					# Unsopported filetype
 					else:
-						ins = "ERROR"
+						exitError("Unsupported filetype '" + Type + "'")
+
+
+				# Replace value with result from different table
+				elif "query" in c["attrs"]:
+					# Query is already executed
+					if c["attrs"]["query"]["type"] == "key" and "queryResult" in c:
+						ins = getQueryCompleted(q, c)
+					
+					# We have to execute a new query
+					elif c["attrs"]["query"]["type"] == "direct":
+						ins = getQueryNew(db, c, str(q[c["name"]]), dbName)
+
+				# We don't need to format or replace anything, we just need to encode
+				# the variable correctly
 				elif type(q[c["name"]]) == int or type(q[c["name"]]) == long or type(q[c["name"]]) == float:
 					ins = str(q[c["name"]])
 				else:
-					ins = q[c["name"]].encode('ascii', 'xmlcharrefreplace')
+					ins = q[c["name"]]
 				
+				# Should always be encoded with valid html
+				ins = ins.encode('ascii', 'xmlcharrefreplace')
 
+				# If we should store this column, this column can then be referenced
+				# by the XML file
+				if "store" in c["attrs"] and c["attrs"]["store"].lower() != "false":
+					key = c["attrs"]["store"]
+					
+					# Check if we should use default name or not
+					if key.lower() == "true":	key = c["name"]
+
+					localStorage[key] = q[c["name"]]
+				
 				# Write to log file if that is specified
 				if "log" in c["attrs"]:
 					c["attrs"]["log"].write(q[c["name"]] + "\n")
 
-				# Separate case where we need to get the result from a different DB
-				# The queries have been done already, just need to find it
-				if "query" in c["attrs"]:
-					if c["attrs"]["query"]["type"] == "key" and "queryResult" in c:
-						for res in c["queryResult"]["result"]:
-							if q[c["name"]] == res[c["queryResult"]["key"]]:
-								ins =res[c["queryResult"]["value"]]
-								if type(ins) == unicode:
-									ins = removeInvalid(res[c["queryResult"]["value"]])
-								break
-					elif c["attrs"]["query"]["type"] == "direct":
-						run = c["attrs"]["query"]["query"]
-						if run.find("?") == -1:
-							print "ERROR: A direct query need to have '?' to be replaces"
-							sys.exit(0)
-						run = run.replace("?", ins)
-
-						res, succ = execQuery(db, run)
-						if succ == False:
-							if db:	db.close()
-							return False
-						ins = ""
-						if len(res) == 0:
-							ins = c["default"]
-						for r in res:
-							ins += "<br />"
-							for k in r.keys():
-								ins += "<i>" + k + "</i>: " + removeInvalid(r[k])
-
-				
 				# Add to filter if this column is specified with it
-				if "filter" in c["attrs"] and c["attrs"]["filter"] == True:
-					Filter += removeInvalid(ins)
+				if c["attrs"].get("filter", False) == True:
+					Filter += removeInvalid(ins).encode('ascii', 'xmlcharrefreplace')
 				
-				if "append" in c["attrs"]:
-					ins += " " + c["attrs"]["append"]
-				if "prepend" in c["attrs"]:
-					ins = c["attrs"]["prepend"] + " " + ins
+				# Static text is appended to the result
+				if "append" in c["attrs"]: 	ins += " " + c["attrs"]["append"]
 
+				# Static text is prepended to the result
+				if "prepend" in c["attrs"]:	ins = c["attrs"]["prepend"] + " " + ins
+
+				# id should always be included in the column tag
 				if "id" in c["attrs"]:
+					# Title is formatted i bit differently, so this is an exception
 					if c["attrs"]["id"] == "title":
 						event.set("title", "[" + c["print"] + "] " + ins)
 					else:
+						# Title for column is in bold
 						ins2 = "<b>" + c["print"] + "</b> "
+						
+						# Description should not be placed as attribute but inside the
+						# tag
 						if c["attrs"]["id"] == "description":
 							bef = event.text
 							if bef != "" and bef != None:	bef += "<br />"
 							else:	bef = ""
 							bef += ins2 + ins
-							event.text = removeInvalid(bef)
+							event.text = bef
+						
 						else:
+							# Timestamps must be formatted accordingly
 							if c["attrs"]["id"] == "start" or c["attrs"]["id"] == "end":
+								# Default divide value (milliseconds, UNIX)
 								divide = 1000
 								subtract = 0
+
+								# Different epoch than UNIX
 								if "epoch" in c["attrs"]:
-									if c["attrs"]["epoch"] == "windows":
-										divide = 10000000
+									if c["attrs"]["epoch"].lower() == "windows":
+										divide = 10000000	# Standard in Windows
 										subtract = 11644473600
+									else:
+										exitError("Epoch '" + c["attrs"]["epoch"] + \
+										"' is not supported")
+
+								# Change the value we shoulde divide by
 								if "divide" in c["attrs"]:
-									divide = int(c["attrs"]["divide"])
+									# Divide can be float or integer
+									divide = c["attrs"]["divide"]
+									divide = float(divide) if '.' in divide else int(divide)
+
 								val = int( ( (long(ins)/divide) - subtract) )
+								
+								# If this is start, it should be used as a basis for
+								# filtering out too early or too late events
 								if c["attrs"]["id"] == "start":
 									dateT = int(math.floor(val))
+
+								# Get a time we can write in the event
 								ins = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(val+skew))
+
+								# Set time event
 								event.set(c["attrs"]["id"], ins)
+
+							# All other events that are not title, description, start
+							# or end
 							else:
 								event.set(c["attrs"]["id"], ins2 + ins)
 				else:
-					print "No id attribute in " + c["name"]
-					return False
+					# Must supply an ID attribute in XML file
+					exitError("No id attribute in " + c["name"])
+
 			# Always set filter, might be empty
 			event.set("eventID", Filter)
 
@@ -646,6 +835,7 @@ unallocated):
 			if dateT <= endD and dateT >= (startD-1):
 				xml.append(event)
 				count += 1
+
 		if verbose:
 			print "Selected " + str(count) + " records from database '" + dbName +\
 			"', table '" + str(t["name"]) + "'"
@@ -657,7 +847,8 @@ def removeInvalid(chunk):
 	if type(chunk) == int or type(chunk) == float or type(chunk) == long:
 		return str(chunk)
 	chunk = ' '.join(chunk .split())
-	return ''.join([ch for ch in chunk if ord(ch) > 31 or ord(ch) ==9])
+	return ''.join([ch for ch in chunk if ord(ch) < 127 and ord(ch) > 31 or ord(ch) == 9 ])
+
 
 # Retrieve all unallocated from one database
 # Converts the result to a format that can be read just like the results
@@ -686,7 +877,8 @@ def getUnallocated(xmlConfig, dbPath):
 				for l in r["rows"][t]:
 					ins = {}
 					for ll in l:
-						ins[ll["name"]] = ll["content"]
+						tmp = removeInvalid(ll["content"])
+						ins[ll["name"]] = tmp.encode('ascii', 'xmlcharrefreplace')
 					sqlResult[t].append(ins)
 	
 	# Delete rows where we don't have a timestamp
@@ -704,7 +896,7 @@ def getUnallocated(xmlConfig, dbPath):
 				if c["name"] not in r:
 					r[c["name"]] = c["default"]
 				if c["attrs"]["id"] == "title":
-					r[c["name"]] = str(r[c["name"]]) + "(Unallocated)"
+					r[c["name"]] = str(r[c["name"]]) + " (Unallocated)"
 			count += 1
 		for i in reversed(range(0, len(dels))):
 			del sqlResult[col["name"]][dels[i]]
@@ -828,7 +1020,12 @@ if __name__== '__main__':
 	logdir = args["log"]
 	if not os.path.exists(logdir):
 		os.makedirs(logdir)
-	log = open(os.path.join(logdir, "droidlog2timeline.log"), "w")	# Output file
+
+	try:
+		log = open(os.path.join(logdir, "droidlog2timeline.log"), "w")	# Output file
+	except IOError as e:
+		print "I/O error({0}): {1}".format(e.errno, e.strerror)
+		sys.exit(0)
 
 	skew = args["skew"]
 
@@ -852,7 +1049,7 @@ if __name__== '__main__':
 	startD = args["earliestdate"]
 	endD = args["latestdate"]
 	if startD == None:
-		startD = 1
+		startD = 10	# Then we avoid places where date is 0
 	else:
 		startD = time.strptime(startD, "%Y-%m-%dT%H:%M")
 		startD = time.mktime(startD)
@@ -873,7 +1070,11 @@ if __name__== '__main__':
 		print pathData + " is not a directory"
 		sys.exit(0)
 	
-	f = open(os.path.join(output, "logs.xml"), "w")	# Output file
+	try:
+		f = open(os.path.join(output, "logs.xml"), "w")	# Output file
+	except IOError as e:
+		print "I/O error({0}): {1}".format(e.errno, e.strerror)
+		sys.exit(0)
 
 	root = ET.Element('data')	# Root element
 	
