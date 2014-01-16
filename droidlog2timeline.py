@@ -67,6 +67,29 @@ def sha1OfFile(filepath):
 	with open(filepath, 'rb') as f:
 		return hashlib.sha1(f.read()).hexdigest()
 
+# Remove duplicates in log files and close them
+def cleanLogFiles(logPath):
+	for k in fileOpened.keys():
+		# Need to reopen the file so we can write to it
+		fileOpened[k].close()
+		try:
+			f = open(os.path.join(logPath, k), "r+")
+		except IOError as e:
+			print "I/O error({0}): {1}".format(e.errno, e.strerror)
+			continue
+		lines = f.readlines()
+
+		# Remove duplicates
+		lines = list(set(lines))
+
+		# Get back to the start
+		f.seek(0)
+
+		for l in lines:
+			f.write(l)
+		# Remove the old lines
+		f.truncate()
+		f.close()
 
 # Get a dictionary representing the JSON input, keys are defined in keyWrite
 def getJsonKeys(keys, keyWrite, Json):
@@ -152,6 +175,7 @@ def printLinks(webapp):
 	File.write("var Links = new Array();\n")
 	for l in links:
 		File.write("Links.push('" + os.path.join(l, "index.html") + "');\n")
+	File.close()
 
 # Writes out JavaScript varialbes we have created during the script
 def printVariables(fname, images, intervals, timezone=0):
@@ -179,6 +203,7 @@ def printVariables(fname, images, intervals, timezone=0):
 			printed.append(i)
 			f.write("Images.push('" + i["file"] + "');\n")
 			f.write("imageDesc.push('" + i["description"] + "');\n")
+	f.close()
 
 
 # Read in list of packages installed on the phone
@@ -302,6 +327,8 @@ def readXML(name, imageDesc, pathData, disallowOverride, logPath):
 	# Get root of our file
 	tree = ET.parse(f)
 	root = tree.getroot()
+
+	f.close()
 
 	# For each database
 	for dbT in root.iter("database"):
@@ -1172,3 +1199,9 @@ if __name__== '__main__':
 
 	# Go up one directory and print new file with links
 	printLinks(os.path.dirname(os.path.dirname(output)))
+
+	# Clean up in the logs we wrote
+	cleanLogFiles(logdir)
+
+	# Main log file
+	log.close()
