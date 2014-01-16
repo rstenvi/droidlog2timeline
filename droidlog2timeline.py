@@ -741,7 +741,7 @@ unallocated):
 					ins = q[c["name"]]
 				
 				# Should always be encoded with valid html
-				ins = ins.encode('ascii', 'xmlcharrefreplace')
+				ins = removeInvalid(ins).encode('ascii', 'xmlcharrefreplace')
 
 				# If we should store this column, this column can then be referenced
 				# by the XML file
@@ -877,8 +877,7 @@ def getUnallocated(xmlConfig, dbPath):
 				for l in r["rows"][t]:
 					ins = {}
 					for ll in l:
-						tmp = removeInvalid(ll["content"])
-						ins[ll["name"]] = tmp.encode('ascii', 'xmlcharrefreplace')
+						ins[ll["name"]] = ll["content"]
 					sqlResult[t].append(ins)
 	
 	# Delete rows where we don't have a timestamp
