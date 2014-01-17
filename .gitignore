@@ -13,6 +13,9 @@ data/
 # External libraries
 libraries
 
+# Locations of shapefiles
+src/shapefile/sources/
+
 # Default output of logs
 logs
 

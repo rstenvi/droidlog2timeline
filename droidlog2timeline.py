@@ -38,6 +38,14 @@ except ImportError:
 	print "Unable to import lxml, install with easy_install lxml"
 	sys.exit(0)
 
+try:
+	sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)),
+	'src/shapefile'))
+	import reverseGEO
+	Base = os.path.join(os.path.join("src", "shapefile"), "sources")
+	reversegeo = reverseGEO.geoFiles(Base, "countries.geojson")
+except ImportError:
+	print "Unable to import reverseGEO, will not print locations"
 
 # Global variable that determines if the output is verbose or not
 verbose = False
@@ -99,6 +107,14 @@ def getJsonKeys(keys, keyWrite, Json):
 		if key in Dict:
 			ret[keyW] = Dict[key]
 	return ret
+
+def handleDefaultStoreVars(Dict, event):
+	if "longitude" in Dict.keys() and "latitude" in Dict.keys():
+		if "reversegeo" in globals():
+			geo = reversegeo.reverseGeocode(float(Dict["longitude"]), float(Dict["latitude"]))
+			bef = event.text
+			bef += "<br /><b>Location</b>" + geo
+			event.text = bef
 
 
 # Read and interpret logs
@@ -860,6 +876,7 @@ unallocated):
 
 			# Check if goes beyond our boundaries
 			if dateT <= endD and dateT >= (startD-1):
+				handleDefaultStoreVars(localStorage, event)
 				xml.append(event)
 				count += 1
 
@@ -1028,10 +1045,10 @@ if __name__== '__main__':
 	Carve = args["carve"]
 	if Carve:
 		# Import module for SQLite carving
-		sys.path.insert(0, 'src/SQLiteCarving')
+		sys.path.insert(0, os.path.join(thisPath, 'src/SQLiteCarving'))
 		import SQLiteCarver
 
-	sys.path.insert(0, 'src/droidlog')
+	sys.path.insert(0, os.path.join(thisPath, 'src/droidlog'))
 	import droidlog
 
 
