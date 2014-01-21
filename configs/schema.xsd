@@ -68,6 +68,7 @@
       <xs:simpleContent>
         <xs:extension base="xs:NCName">
           <xs:attribute name="append"/>
+          <xs:attribute name="store"/>
           <xs:attribute name="default"/>
           <xs:attribute name="divide" type="xs:integer"/>
           <xs:attribute name="epoch" type="xs:string"/>
@@ -86,6 +87,7 @@
     <xs:complexType>
       <xs:attribute name="columns" use="optional"/>
       <xs:attribute name="static" use="optional"/>
+      <xs:attribute name="stored" use="optional"/>
     </xs:complexType>
   </xs:element>
   <xs:element name="icon">

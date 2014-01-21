@@ -15,7 +15,7 @@ select="latitude;longitude;">coordinates</column>
 <icon desc="Facebook messages">facebook.png</icon>
 <where>timestamp_ms!=0</where>
 <insert id="caption">Facebook messages sent, both to and from the owner</insert>
-<filter columns="text;sender" static="facebook" />
+<filter columns="text;sender" stored="longitude;latitude" static="facebook" />
 </table>
 </database>
 

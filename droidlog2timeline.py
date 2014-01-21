@@ -444,6 +444,7 @@ def readXML(name, imageDesc, pathData, disallowOverride, logPath):
 						cols = tabID.split(";")
 						table["filter"]["columns"] = cols
 					table["filter"]["static"] = el.get("static", "")
+					table["filter"]["stored"] = el.get("stored", "")
 			if "filter" in table:
 				for t in table["filter"].get("columns", []):
 					for c in columns:
@@ -870,6 +871,10 @@ unallocated):
 				else:
 					# Must supply an ID attribute in XML file
 					exitError("No id attribute in " + c["name"])
+
+			# Add locally stored variables
+			for fStored in t["filter"].get("stored", "").split(";"):
+				Filter += localStorage.get(fStored, "")
 
 			# Always set filter, might be empty
 			event.set("eventID", Filter)
