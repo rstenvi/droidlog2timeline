@@ -24,6 +24,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+### All the different imports we need  ###
+
 import sqlite3 as sqlite
 import sys, time, csv, os, re
 import argparse
@@ -37,6 +39,23 @@ try:
 except ImportError:
 	print "Unable to import lxml, install with easy_install lxml"
 	sys.exit(0)
+try:
+	import downloadLibraries
+except ImportError:
+	print "Unable to import downloadLibraries"
+	sys.exit(0)
+
+try:
+	import createWebApp
+except ImportError:
+	print "Unable to import createWebApp"
+	sys.exit(0)
+
+try:
+	import fileCheck
+except ImportError:
+	print "Unable to import fileCheck"
+	sys.exit(0)
 
 try:
 	sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -47,6 +66,9 @@ try:
 except ImportError:
 	print "Unable to import reverseGEO, will not print locations"
 
+
+### Global variables  ###
+
 # Global variable that determines if the output is verbose or not
 verbose = False
 storagePaths = []	# Root storage mount points
@@ -55,7 +77,7 @@ storagePaths = []	# Root storage mount points
 createSymlinks = False
 
 # Global status description for error messages
-globalStatus = ""
+globalStatus = "Unknown"
 
 # Root output directory
 output = ""
@@ -65,7 +87,7 @@ fileOpened = {}
 
 # Print error message and exit
 def exitError(msg):
-	print "ERROR: Message: " + str(msg) + " Status: "
+	print "ERROR: Message: " + str(msg) + " Status: " + globalStatus
 	sys.exit(0)
 
 # Calculate SHA-1 hash value of a file
@@ -172,6 +194,15 @@ def dict_factory(cursor, row):
 	for idx, col in enumerate(cursor.description):
 		d[col[0]] = row[idx]
 	return d
+
+# Move up one directory, exit we are unable to do so
+def goUpDir(Dir):
+	ret = os.path.dirname(Dir)
+	if ret != "" and os.path.samefile(ret, Dir) == True:
+		ret = os.path.dirname(ret)
+	if ret == "":
+		exitError("Unable to move up directory")
+	return ret
 
 # Print all links to new javascript file
 def printLinks(webapp):
@@ -952,14 +983,41 @@ def getUnallocated(xmlConfig, dbPath):
 	# - Should also write unallocated log to a separate file
 	return sqlResult
 
+def checkAndCreateEnvironment(output, scriptPath):
+	global globalStatus
+	globalStatus = "checkAndCreateEnvironment(" + output + "," + scriptPath + ")"
+	# Go up one directory (output) or exit if we can't
+	webapp = goUpDir(output)
+
+	if os.path.isdir(webapp) == False:
+		os.mkdir(webapp)
+	
+	# Download libraries in script folder if non-existent
+	if fileCheck.checkLibrary(os.path.join(scriptPath, "libraries")) == False:
+		if verbose:
+			print "Downloading libraries"
+		downloadLibraries.downloadAll(os.path.join(scriptPath, "libraries") )
+	
+	# Create web application if non-existent
+	if fileCheck.checkWebapp(webapp) == False:
+		if verbose:
+			print "Creating web application directory"
+		createWebApp.createWebApp(webapp, os.path.join(scriptPath, "libraries"),\
+		os.path.join(scriptPath, "templates") )
+
 if __name__== '__main__':
+	VERSION = "0.1.0"
 	# Add the parser object
 	parser = argparse.ArgumentParser(description=' droidlog2timeline - Create timeline for Android',
 	formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+	# Print version number for the program
+	parser.add_argument('-V', '--version', action='version',
+	version="%(prog)s version " + VERSION)
 	
 	# Path to the Android data directory
-	parser.add_argument('-p', '--path', dest='path',default="/mnt/data/data/",\
-	help='Path to the /data/data/ directory in Android')
+	parser.add_argument('-p', '--path', dest='path', required=True,\
+	type=str, help='Path to the /data/data/ directory in Android')
 
 	# Path to the XML configuration files
 	parser.add_argument('-c', '--config', dest='config', default='configs',\
@@ -1086,8 +1144,13 @@ if __name__== '__main__':
 	Queries = []
 
 	output = args["output"]
+	
 	if not os.path.exists(output):
 		os.makedirs(output)
+
+	# Create the necessary environment or exit if we fail
+	checkAndCreateEnvironment(output, thisPath)
+
 
 	templates = os.path.join(thisPath, "templates")
 	shutil.copy2(os.path.join(templates, "index.html"),\
@@ -1220,7 +1283,7 @@ if __name__== '__main__':
 	int(timezone[:3]))
 
 	# Go up one directory and print new file with links
-	printLinks(os.path.dirname(os.path.dirname(output)))
+	printLinks(goUpDir(output))
 
 	# Clean up in the logs we wrote
 	cleanLogFiles(logdir)

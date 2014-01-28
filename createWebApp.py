@@ -26,19 +26,13 @@
 import sys, os
 import shutil	# To copy files
 
-if __name__== '__main__':
-	output = "webapp"
-	libraries = "libraries"
-	template = "templates"
-
+# Create the basis for a web application
+def createWebApp(output, libraries, template):
 	if not os.path.exists(output):
 		os.mkdir(output)
-	else:
-		print output + " already exist"
-		sys.exit(0)
 
 	if os.path.exists(libraries):
-		shutil.copytree(libraries, os.path.join(output, libraries))
+		shutil.copytree(libraries, os.path.join(output, "libraries"))
 	else:
 		print libraries + " doesn't exist, need to download first"
 		sys.exit(0)
@@ -52,4 +46,7 @@ if __name__== '__main__':
 		print template + " doesn't exist"
 		sys.exit(0)
 
+
+if __name__== '__main__':
+	createWebApp("webapp", "libraries", "templates")
 	print "Created web application directory in " + output

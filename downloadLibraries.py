@@ -53,9 +53,8 @@ def unzipFile(File, path):
 			fd.close()
 	zFile.close()
 
-
-if __name__== '__main__':
-	prefixJQ = os.path.join("libraries", "jquery_1.10.2")
+def downloadAll(mainFolder):
+	prefixJQ = os.path.join(mainFolder, "jquery_1.10.2")
 
 	downloads = [
 		{"url" : "http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.js",
@@ -77,6 +76,9 @@ if __name__== '__main__':
 		downloadFile(d["url"], d["path"])
 
 	downloadFile(Simile, simileTmp)
-	unzipFile(simileTmp, "libraries")
+	unzipFile(simileTmp, mainFolder)
 
 	os.remove(simileTmp)
+
+if __name__== '__main__':
+	downloadAll("libraries")
