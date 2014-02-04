@@ -23,7 +23,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-import sqlite3 as sqlite
+from pysqlite2 import dbapi2 as sqlite
 import sys, time, os, argparse
 import struct, string, binascii
 

@@ -32,3 +32,10 @@ def getAllFilesReg(Dir, regexp="[a-z]+.[a-zA-Z0-9\.]+.xml[\.0-9]*"):
 	for d in dirFiles:
 		if reg.match(d):	ret.append(d)
 	return ret
+
+def unixToSystemPath(Path):
+	paths = Path.split("/")
+	ret = paths[0];
+	for i in range(1, len(paths)):
+		ret = os.path.join(ret, paths[i])
+	return ret

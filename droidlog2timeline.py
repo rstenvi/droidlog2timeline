@@ -26,7 +26,7 @@
 
 ### All the different imports we need  ###
 
-import sqlite3 as sqlite
+from pysqlite2 import dbapi2 as sqlite
 import sys, time, csv, os, re
 import argparse
 from datetime import datetime
@@ -198,7 +198,7 @@ def dict_factory(cursor, row):
 # Move up one directory, exit we are unable to do so
 def goUpDir(Dir):
 	ret = os.path.dirname(Dir)
-	if ret != "" and os.path.samefile(ret, Dir) == True:
+	if ret != "" and os.stat(ret) == os.stat(Dir):
 		ret = os.path.dirname(ret)
 	if ret == "":
 		exitError("Unable to move up directory")
@@ -367,9 +367,9 @@ def readXML(name, imageDesc, pathData, disallowOverride, logPath):
 		sys.exit(0)
 	
 	# Find program directory
-	nameStart = name.rfind("/")
-	nameEnd = name.find(".xml")
-	appName = name[nameStart+1:nameEnd]
+	appName = os.path.basename(name)
+	nameEnd = appName.find(".xml")
+	appName = appName[:nameEnd]
 	
 	# Get root of our file
 	tree = ET.parse(f)
@@ -733,6 +733,7 @@ unallocated):
 		# Return if we fail, might just be wrong XML file, so should not exit
 		if succ == False:
 			if db:	db.close()
+			print "\tDatabase: " + dbName
 			return False
 
 		# We run all the XML-defined queries beforehand to avoid having to run
@@ -934,7 +935,7 @@ def removeInvalid(chunk):
 # Converts the result to a format that can be read just like the results
 # received from the original query
 def getUnallocated(xmlConfig, dbPath):
-	dbFile = xmlConfig["name"]
+	dbFile = droidlog.unixToSystemPath(xmlConfig["name"])
 
 	# Make a list of all table names
 	tables = []
@@ -942,7 +943,7 @@ def getUnallocated(xmlConfig, dbPath):
 		tables.append(t["name"])
 
 	# Data we send to chose which records we are going to select
-	send = [{"filename" : dbFile, "path" : dbPath, "tables" : tables}]
+	send = [{"filename" : dbFile, "path" : os.path.abspath(dbPath), "tables" : tables}]
 
 	# All data in unallocated space
 	res = SQLiteCarver.findAllUnallocated(send, verbose)
