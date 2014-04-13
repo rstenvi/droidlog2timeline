@@ -14,7 +14,7 @@ Program
 - [x] P5: Add option to insert random text from XML-file. Useful for filtering later
 - [x] P6: Handle filenames that are not static, maybe using regexp
 - [x] P7: Handle more complex datastructures, like JSON
-- [ ] P8: Handle media formats, like displaying images taken from camera
+- [x] P8: Handle media formats, like displaying images taken from camera
 - [x] P9: Allow overriding the default for unknown values
 - [x] P10: Option to disallow override from XML, use attribute name instead
 

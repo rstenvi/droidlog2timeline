@@ -1007,7 +1007,7 @@ def checkAndCreateEnvironment(output, scriptPath):
 		os.path.join(scriptPath, "templates") )
 
 if __name__== '__main__':
-	VERSION = "0.1.0"
+	VERSION = "1.0.0"
 	# Add the parser object
 	parser = argparse.ArgumentParser(description=' droidlog2timeline - Create timeline for Android',
 	formatter_class=argparse.ArgumentDefaultsHelpFormatter)

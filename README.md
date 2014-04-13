@@ -13,8 +13,6 @@ change the soure code.
 
 The timeline is displayed using [SIMILE Timeline](http://www.simile-widgets.org/timeline/).
 
-This is now under development and a release will be coming soon.
-
 Using the program
 -------------------
 
@@ -28,24 +26,29 @@ default behaviour).
 The Android logs first have to be retrieved in some way. The program only uses
 data from "/data/data/" on the device. If you retrieve an image you have to
 mount it first. A list of all programs that the program should gather logs from
-must also be passed to the program, ls /data/data/ > packages.list will work.
+must also be passed to the program:
+
+    ls /data/data/ > packages.list
+	
+will work.
 
 The full list of possible flags are shown below (might not be completely updated):
 
-    usage: droidlog2timeline.py [-h] [-p PATH] [-c CONFIG] [-l LIST] [-s SKEW]
+    usage: droidlog2timeline.py [-h] [-V] -p PATH [-c CONFIG] [-l LIST] [-s SKEW]
                                 [-e EARLIESTDATE] [-d LATESTDATE] [-t TIMEZONE]
-                                [-o OUTPUT] [-L LOG] [-v] [-a] [-H] [-C] [-D]
+                                [-o OUTPUT] [-L LOG] [-v] [-a] [-H] [-C] [-D] [-S]
+                                [-r ROOTS [ROOTS ...]]
 
     droidlog2timeline - Create timeline for Android
 
     optional arguments:
       -h, --help            show this help message and exit
       -p PATH, --path PATH  Path to the /data/data/ directory in Android (default:
-                            /mnt/data/data/)
+                            None)
       -c CONFIG, --config CONFIG
                             Path to XML configuration files (default: configs)
       -l LIST, --list LIST  Full path to list of packages on the phone (default:
-                            packages.list)
+                            None)
       -s SKEW, --skew SKEW  Number of seconds to skew the clock (default: 0)
       -e EARLIESTDATE, --earliestdate EARLIESTDATE
                             Earliest date to record (yyyy-mm-ddThh:mm) (default:
@@ -54,10 +57,10 @@ The full list of possible flags are shown below (might not be completely updated
                             Latest date to record (yyyy-mm-ddThh:mm) (default:
                             None)
       -t TIMEZONE, --timezone TIMEZONE
-                            Timezone of the phone (GMT+XXXX) (default: GMT+0000)
+                            Timezone of the phone (+XXXX) (default: +00:00)
       -o OUTPUT, --output OUTPUT
-                            Output directory (default: output/)
-      -L LOG, --log LOG     Logfile of what has been done (default: droidlog.log)
+                            Output directory (default: webapp/output/)
+      -L LOG, --log LOG     Logfile of what has been done (default: logs)
       -v, --verbose         Verbose output (default: False)
       -a, --logcat          Use LogCat files instead of sqlite databases (default:
                             False)
@@ -68,6 +71,10 @@ The full list of possible flags are shown below (might not be completely updated
                             False)
       -D, --disallow-override
                             Disallow override of attribute names (default: False)
+      -S, --symlinks        Use symlinks for displaying media, only possible on
+                            UNIX (default: False)
+      -r ROOTS [ROOTS ...], --root-paths ROOTS [ROOTS ...]
+                            Root paths for various mount points (default: [])
 
 Description of each flag:
 - path Must point to a directory that that looks like /data/data/ on an Android
@@ -101,6 +108,10 @@ Description of each flag:
 - disallow-override The XML-files can specify a new value descriptor to describe
   each value, this makes it easier to analyse, but then you don't know which
   attribute a value belongs to. This option will disable this feature.
+- symlinks When displaying media and when on UNIX-based systems, the program can
+  use symlinks, which saves a lot of time and space.
+- ROOTS List of root mount points where one can find files. Can be used to
+  display pictures from camera etc.
 
 The end result is an XML file that can be read by SIMILE Timeline. This can be
 viewed in a browser. Either just open index.html in output in a browser or
@@ -165,3 +176,5 @@ LICENSE
 
 This program is released under the MIT license, some icons under templates have a
 different license.
+
+
